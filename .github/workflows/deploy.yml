@@ -37,6 +37,9 @@ jobs:
       - name: Build graph
         run: npx tsx src/cli.ts build-graph -o dist/index.html
 
+      - name: Build city
+        run: npx tsx src/cli.ts build-city -o dist/city.html
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
