@@ -28,22 +28,22 @@ export function generateHtml(data: GraphData): string {
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* ── Sơn mài (Vietnamese lacquer) palette ── */
-      --lacquer: #0b0a08;
-      --lacquer-deep: #070605;
-      --surface: #14110d;
-      --elevated: #1d1813;
-      --panel: #13100c;
+      /* ── Daylight paper palette (shared with the city page) ── */
+      --lacquer: #f2ecdf;            /* page background */
+      --lacquer-deep: #e9e1d0;
+      --surface: #ece4d2;
+      --elevated: #faf6ec;
+      --panel: #f7f2e6;
       --oxblood: #7a2a1c;
-      --cinnabar: #c4452a;
-      --gold-leaf: #d9b25a;
-      --gold-bright: #eccd84;
-      --gold-dim: #9a7e42;
-      --eggshell: #ece3d0;
-      --eggshell-dim: #a89f8c;
-      --muted: #6b6253;
-      --border: rgba(217, 178, 90, 0.14);
-      --border-active: rgba(217, 178, 90, 0.34);
+      --cinnabar: #b93c22;
+      --gold-leaf: #9c721c;          /* dark gold — legible on light ground */
+      --gold-bright: #7f5c14;
+      --gold-dim: #b08e4a;
+      --eggshell: #2b241a;           /* primary text */
+      --eggshell-dim: #5d5343;
+      --muted: #8a7f6c;
+      --border: rgba(122, 90, 40, 0.2);
+      --border-active: rgba(122, 90, 40, 0.42);
 
       /* node type colors → lacquer materials */
       --person: #d9b25a;   /* gold leaf */
@@ -86,7 +86,7 @@ export function generateHtml(data: GraphData): string {
       align-items: center;
       justify-content: space-between;
       padding: 14px 28px;
-      background: linear-gradient(180deg, rgba(20,17,13,0.95) 0%, rgba(11,10,8,0.9) 100%);
+      background: linear-gradient(180deg, rgba(250,246,236,0.96) 0%, rgba(242,236,223,0.92) 100%);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
     }
@@ -158,7 +158,7 @@ export function generateHtml(data: GraphData): string {
       background: var(--elevated);
       border: 1px solid var(--border-active);
       border-radius: 6px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 12px 40px rgba(80,55,25,0.22);
       display: none;
       z-index: 40;
     }
@@ -201,7 +201,7 @@ export function generateHtml(data: GraphData): string {
       position: relative;
       overflow: hidden;
       min-width: 0;
-      background: radial-gradient(ellipse at 50% 45%, rgba(122,42,28,0.10) 0%, rgba(11,10,8,0) 55%);
+      background: radial-gradient(ellipse at 50% 45%, rgba(141,184,212,0.18) 0%, rgba(242,236,223,0) 60%);
     }
     .graph-container {
       position: absolute;
@@ -250,7 +250,7 @@ export function generateHtml(data: GraphData): string {
       padding: 4px 11px;
       border-radius: 20px;
       border: 1px solid var(--border);
-      background: rgba(19,16,12,0.82);
+      background: rgba(250,246,236,0.85);
       backdrop-filter: blur(6px);
       color: var(--eggshell-dim);
       font-family: var(--font-body);
@@ -310,7 +310,7 @@ export function generateHtml(data: GraphData): string {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #1a120c;
+      color: #fff9ec;
     }
 
     .era-label { font-size: 11px; color: var(--muted); font-style: italic; }
@@ -417,7 +417,7 @@ export function generateHtml(data: GraphData): string {
       justify-content: center;
       gap: 20px;
       padding: 8px 20px;
-      background: linear-gradient(0deg, rgba(11,10,8,0.95) 0%, rgba(20,17,13,0.9) 100%);
+      background: linear-gradient(0deg, rgba(250,246,236,0.96) 0%, rgba(242,236,223,0.92) 100%);
       border-top: 1px solid var(--border);
       font-size: 11px;
       font-weight: 300;
@@ -518,7 +518,7 @@ export function generateHtml(data: GraphData): string {
         border-top: 1px solid var(--border-active);
         border-radius: 16px 16px 0 0;
         z-index: 20;
-        box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+        box-shadow: 0 -8px 40px rgba(80,55,25,0.25);
       }
       .side-panel.open { animation: sheetSlide 0.3s ease-out; }
       @keyframes sheetSlide {
@@ -715,7 +715,10 @@ export function generateHtml(data: GraphData): string {
           const r = radius(n);
           mesh.scale.setScalar(r);
           const sprite = new SpriteText(n.title);
-          sprite.color = '#ece3d0';
+          sprite.color = '#2b241a';
+          sprite.backgroundColor = 'rgba(250,246,236,0.7)';
+          sprite.padding = 1.5;
+          sprite.borderRadius = 3;
           // hubs are landmarks read from overview distance; leaves are read up close
           sprite.textHeight = n.__isHub ? 9 + Math.min(6, n.__deg * 0.12) : 6.5;
           sprite.fontFace = 'Newsreader, Georgia, serif';
@@ -772,21 +775,21 @@ export function generateHtml(data: GraphData): string {
 
       // ── link styling: dim by color value (deterministic on dark bg), highlight by width+color+particles ──
       function linkColor(l) {
-        if (highlightLinks.has(l)) return '#eccd84';
-        return highlightNodes.size ? '#1b160e' : '#453722';
+        if (highlightLinks.has(l)) return '#b9231e'; // crimson silk on paper
+        return highlightNodes.size ? '#ded7c6' : '#a3906c';
       }
 
       const Graph = new ForceGraph3D(container)
-        .backgroundColor('#0b0a08')
+        .backgroundColor('#e2ebf0')
         .showNavInfo(false)
         .graphData({ nodes, links })
         .nodeThreeObject(nodeObject)
         .nodeLabel(isMobile ? (() => '') : (n =>
-          '<div style="font-family:Be Vietnam Pro,sans-serif;background:#1d1813;'
-          + 'border:1px solid rgba(217,178,90,0.34);border-radius:4px;padding:8px 12px;'
-          + 'box-shadow:0 8px 32px rgba(0,0,0,0.6);max-width:220px">'
-          + '<div style="font-family:Newsreader,serif;font-size:15px;font-weight:600;color:#ece3d0">' + n.title + '</div>'
-          + '<div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6253;margin-top:3px">'
+          '<div style="font-family:Be Vietnam Pro,sans-serif;background:#faf6ec;'
+          + 'border:1px solid rgba(122,90,40,0.42);border-radius:4px;padding:8px 12px;'
+          + 'box-shadow:0 8px 32px rgba(80,55,25,0.25);max-width:220px">'
+          + '<div style="font-family:Newsreader,serif;font-size:15px;font-weight:600;color:#2b241a">' + n.title + '</div>'
+          + '<div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#8a7f6c;margin-top:3px">'
           + (TYPE_LABELS[n.type] || n.type) + ' &middot; ' + n.era + '</div></div>'
         ))
         .linkColor(linkColor)
@@ -794,7 +797,7 @@ export function generateHtml(data: GraphData): string {
         .linkWidth(l => highlightLinks.has(l) ? 1.6 : 0)
         .linkDirectionalParticles(l => (highlightLinks.has(l) && !reduceMotion) ? 2 : 0)
         .linkDirectionalParticleWidth(1.5)
-        .linkDirectionalParticleColor(() => '#eccd84')
+        .linkDirectionalParticleColor(() => '#b9231e')
         .nodeVisibility(isNodeVisible)
         .linkVisibility(isLinkVisible)
         .enableNodeDrag(!isMobile)
@@ -807,7 +810,7 @@ export function generateHtml(data: GraphData): string {
         .onEngineStop(onSettled);
 
       // Warm lacquer depth — oxblood fog instead of cold black (the signature)
-      const fog = new THREE.FogExp2(0x140a06, 0.0006);
+      const fog = new THREE.FogExp2(0xcfdfe8, 0.0006);
       Graph.scene().fog = fog;
       Graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
 

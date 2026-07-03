@@ -124,6 +124,19 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
     .node-count { font-size: 11px; color: var(--muted); font-weight: 300; letter-spacing: 0.05em; }
     .node-count strong { color: var(--gold-dim); font-weight: 500; }
 
+    .mute-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--elevated);
+      font-size: 15px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      line-height: 1;
+    }
+    .mute-btn:hover { border-color: var(--border-active); }
+
     /* ─── Search ─── */
     .search-wrap { position: relative; }
     .search-wrap input {
@@ -758,6 +771,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
     </div>
     <div class="controls">
       <span class="node-count"><strong id="nodeCount">0</strong> ngôi nhà &middot; <strong id="edgeCount">0</strong> liên kết</span>
+      <button class="mute-btn" id="muteBtn" title="Âm thanh">🔊</button>
       <div class="search-wrap">
         <input type="text" id="searchBox" placeholder="Tìm nhân vật, triều đại, sự kiện…" autocomplete="off">
         <div class="search-results" id="searchResults"></div>
@@ -2035,9 +2049,101 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       function setPaused(p) {
         paused = p;
         pauseOverlay.classList.toggle('on', p);
+        if (!p) startAudio(); // browsers allow audio only after a user gesture
       }
       pauseOverlay.addEventListener('pointerdown', () => setPaused(false));
       setPaused(true); // open like Peregrino: the controls ARE the intro
+
+      // ── sound: procedural Web Audio — engine hum + ngũ cung ambience, no assets ──
+      let AC = null, master = null, engineOsc = null, engineGain = null, engineFilter = null;
+      let musicTimer = null;
+      let soundMuted = false;
+      try { soundMuted = localStorage.getItem('wikiCityMuted') === '1'; } catch (err) {}
+      const muteBtn = document.getElementById('muteBtn');
+      function syncMuteBtn() {
+        muteBtn.textContent = soundMuted ? '🔇' : '🔊';
+        muteBtn.title = soundMuted ? 'Bật âm thanh' : 'Tắt âm thanh';
+      }
+      syncMuteBtn();
+
+      function startAudio() {
+        if (soundMuted) return;
+        if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        AC = new Ctx();
+        master = AC.createGain();
+        master.gain.value = 0.35;
+        master.connect(AC.destination);
+        // engine: filtered saw whose pitch and volume ride the speedometer
+        engineOsc = AC.createOscillator();
+        engineOsc.type = 'sawtooth';
+        engineOsc.frequency.value = 46;
+        engineFilter = AC.createBiquadFilter();
+        engineFilter.type = 'lowpass';
+        engineFilter.frequency.value = 300;
+        engineFilter.Q.value = 1.1;
+        engineGain = AC.createGain();
+        engineGain.gain.value = 0;
+        engineOsc.connect(engineFilter);
+        engineFilter.connect(engineGain);
+        engineGain.connect(master);
+        engineOsc.start();
+        // soft drone bed (D2 + A2)
+        [73.42, 110].forEach(f => {
+          const o = AC.createOscillator();
+          o.type = 'sine';
+          o.frequency.value = f;
+          const g = AC.createGain();
+          g.gain.value = 0.014;
+          o.connect(g);
+          g.connect(master);
+          o.start();
+        });
+        // ambient đàn plucks on the ngũ cung (D pentatonic) scale
+        const PENTA = [293.66, 349.23, 392.0, 440.0, 523.25, 587.33, 698.46, 784.0];
+        musicTimer = setInterval(() => {
+          if (!AC || soundMuted || document.hidden) return;
+          if (Math.random() < 0.72) {
+            pluck(PENTA[Math.floor(Math.random() * PENTA.length)], 0.045 + Math.random() * 0.035, 2.4);
+            if (Math.random() < 0.3) {
+              setTimeout(() => pluck(PENTA[Math.floor(Math.random() * PENTA.length)] / 2, 0.035, 3), 320 + Math.random() * 400);
+            }
+          }
+        }, 1500);
+      }
+      function pluck(freq, vol, dur) {
+        if (!AC || soundMuted) return;
+        const o = AC.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = freq;
+        const g = AC.createGain();
+        const t = AC.currentTime;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+        o.connect(g);
+        g.connect(master);
+        o.start(t);
+        o.stop(t + dur + 0.1);
+      }
+      function chime() { pluck(1174.66, 0.08, 1.4); setTimeout(() => pluck(1567.98, 0.06, 1.8), 130); }
+      function gong() { pluck(146.83, 0.11, 3.4); }
+      function updateEngine() {
+        if (!AC || soundMuted || !engineGain) return;
+        const sp = drive ? 24 : Math.abs(carState.speed);
+        const active = mode === 'drive' || drive;
+        engineGain.gain.setTargetAtTime(active ? 0.008 + Math.min(0.05, sp * 0.0022) : 0, AC.currentTime, 0.09);
+        engineOsc.frequency.setTargetAtTime(44 + sp * 3.4, AC.currentTime, 0.09);
+        engineFilter.frequency.setTargetAtTime(240 + sp * 28, AC.currentTime, 0.1);
+      }
+      muteBtn.addEventListener('click', () => {
+        soundMuted = !soundMuted;
+        try { localStorage.setItem('wikiCityMuted', soundMuted ? '1' : '0'); } catch (err) {}
+        syncMuteBtn();
+        if (!soundMuted) startAudio();
+        if (master) master.gain.value = soundMuted ? 0 : 0.35;
+      });
 
       // ── selection ──
       function applySelection(node) {
@@ -2048,6 +2154,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         showPage(node);
         addToTrail(node);
         updateLabels(true);
+        chime();
       }
       function clearSelection() {
         selectedId = null;
@@ -2076,6 +2183,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         downPos = { x: e.clientX, y: e.clientY };
         hideHint();
         stopIntro();
+        startAudio();
       });
       renderer.domElement.addEventListener('pointerup', e => {
         if (!downPos) return;
@@ -2239,9 +2347,11 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           seg.classList.toggle('active', i === active);
         });
         if (active !== lastDistrict) {
+          const wasIn = lastDistrict !== -1;
           lastDistrict = active;
           districtChipEl.textContent = active === -1 ? '' : CITY.districts[active].label;
           districtChipEl.classList.toggle('on', mode === 'drive' && active !== -1);
+          if (mode === 'drive' && active !== -1 && wasIn) gong(); // crossing into a new era
         }
       }
 
@@ -2344,6 +2454,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         }
         sun.position.set(controls.target.x + 70, 110, controls.target.z + 45);
         sun.target.position.set(controls.target.x, 0, controls.target.z);
+        updateEngine();
         syncEraStrip();
         updateLabels();
         renderer.render(scene, camera);
