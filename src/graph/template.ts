@@ -109,6 +109,18 @@ export function generateHtml(data: GraphData): string {
       text-transform: uppercase;
     }
 
+    .view-link {
+      font-size: 11px;
+      color: var(--eggshell-dim);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .view-link:hover { color: var(--gold-leaf); border-color: var(--border-active); }
+
     .controls { display: flex; gap: 14px; align-items: center; }
 
     .node-count { font-size: 11px; color: var(--muted); font-weight: 300; letter-spacing: 0.05em; }
@@ -553,6 +565,7 @@ export function generateHtml(data: GraphData): string {
     <div class="header-brand">
       <h1>Lịch Sử Việt Nam</h1>
       <span class="subtitle">Bản đồ tri thức · 3D</span>
+      <a class="view-link" href="city.html">Phố cổ ↗</a>
     </div>
     <div class="controls">
       <span class="node-count"><strong id="nodeCount">0</strong> nút &middot; <strong id="edgeCount">0</strong> liên kết</span>

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { getArticlesByEra } from './fetcher/article-list.js';
 import { RawStore } from './fetcher/raw-store.js';
 import { fetchArticle } from './fetcher/wiki-api.js';
-import { buildGraphFile } from './graph/build-graph.js';
+import { buildCityFile, buildGraphFile } from './graph/build-graph.js';
 import { ingestArticle, ingestDiscoveredArticle, normalizePage, parseWikiPage } from './ingester/ingester.js';
 import { findUnresolvedLinks } from './linker/link-resolver.js';
 import type { LLMProvider } from './llm/index.js';
@@ -180,6 +180,20 @@ program
     console.log(`Generated ${outputPath}`);
     console.log(`  ${nodeCount} nodes, ${edgeCount} edges`);
     console.log(`\nOpen in browser to explore.`);
+  });
+
+program
+  .command('build-city')
+  .description('Generate the 3D knowledge-city visualization of the wiki')
+  .option('-o, --output <path>', 'Output HTML file path', 'dist/city.html')
+  .action(async (opts: { output: string }) => {
+    const wikiDir = join(ROOT, 'wiki');
+    const outputPath = join(ROOT, opts.output);
+    console.log('Building city...');
+    const { nodeCount, edgeCount } = await buildCityFile(wikiDir, outputPath);
+    console.log(`Generated ${outputPath}`);
+    console.log(`  ${nodeCount} buildings, ${edgeCount} links`);
+    console.log(`\nOpen in browser to stroll the old town.`);
   });
 
 program

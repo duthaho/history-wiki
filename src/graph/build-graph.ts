@@ -4,6 +4,8 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { globSync } from 'glob';
 import { generateHtml } from './template.js';
+import { computeCityLayout, roadGraphComponents } from './city-layout.js';
+import { generateCityHtml } from './city-template.js';
 
 export interface GraphNode {
   id: string;
@@ -81,7 +83,7 @@ export function extractGraphData(pages: Array<{ path: string; raw: string }>): G
   return { nodes, edges, pages: pageContents };
 }
 
-export async function buildGraphFile(wikiDir: string, outputPath: string): Promise<{ nodeCount: number; edgeCount: number }> {
+async function readWikiData(wikiDir: string): Promise<GraphData> {
   const files = globSync('**/*.md', { cwd: wikiDir });
   const pages: Array<{ path: string; raw: string }> = [];
 
@@ -90,8 +92,26 @@ export async function buildGraphFile(wikiDir: string, outputPath: string): Promi
     pages.push({ path: file, raw });
   }
 
-  const data = extractGraphData(pages);
+  return extractGraphData(pages);
+}
+
+export async function buildGraphFile(wikiDir: string, outputPath: string): Promise<{ nodeCount: number; edgeCount: number }> {
+  const data = await readWikiData(wikiDir);
   const html = generateHtml(data);
+
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, html, 'utf-8');
+
+  return { nodeCount: data.nodes.length, edgeCount: data.edges.length };
+}
+
+export async function buildCityFile(wikiDir: string, outputPath: string): Promise<{ nodeCount: number; edgeCount: number }> {
+  const data = await readWikiData(wikiDir);
+  const layout = computeCityLayout(data);
+  if (roadGraphComponents(layout.roads) !== 1) {
+    throw new Error('City road network is disconnected — refusing to ship an unreachable building');
+  }
+  const html = generateCityHtml(data, layout);
 
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, html, 'utf-8');
