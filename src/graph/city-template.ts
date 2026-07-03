@@ -34,21 +34,21 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* ── Sơn mài lacquer palette (shared with the graph page) ── */
-      --lacquer: #0b0a08;
-      --surface: #14110d;
-      --elevated: #1d1813;
-      --panel: #13100c;
+      /* ── Daylight Hội An palette: paper, plaster, terracotta ── */
+      --lacquer: #f2ecdf;            /* page background (sun-bleached paper) */
+      --surface: #ece4d2;
+      --elevated: #faf6ec;
+      --panel: #f7f2e6;
       --oxblood: #7a2a1c;
-      --cinnabar: #c4452a;
-      --gold-leaf: #d9b25a;
-      --gold-bright: #eccd84;
-      --gold-dim: #9a7e42;
-      --eggshell: #ece3d0;
-      --eggshell-dim: #a89f8c;
-      --muted: #6b6253;
-      --border: rgba(217, 178, 90, 0.14);
-      --border-active: rgba(217, 178, 90, 0.34);
+      --cinnabar: #b93c22;
+      --gold-leaf: #9c721c;          /* dark gold — legible on light ground */
+      --gold-bright: #7f5c14;
+      --gold-dim: #b08e4a;
+      --eggshell: #2b241a;           /* primary text (dark umber) */
+      --eggshell-dim: #5d5343;
+      --muted: #8a7f6c;
+      --border: rgba(122, 90, 40, 0.2);
+      --border-active: rgba(122, 90, 40, 0.42);
 
       --person: #d9b25a;
       --dynasty: #c4452a;
@@ -89,7 +89,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       align-items: center;
       justify-content: space-between;
       padding: 14px 28px;
-      background: linear-gradient(180deg, rgba(20,17,13,0.95) 0%, rgba(11,10,8,0.9) 100%);
+      background: linear-gradient(180deg, rgba(250,246,236,0.96) 0%, rgba(242,236,223,0.92) 100%);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
     }
@@ -151,7 +151,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       background: var(--elevated);
       border: 1px solid var(--border-active);
       border-radius: 6px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 12px 40px rgba(80,55,25,0.22);
       display: none;
       z-index: 40;
     }
@@ -228,7 +228,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       padding: 4px 11px;
       border-radius: 20px;
       border: 1px solid var(--border);
-      background: rgba(19,16,12,0.82);
+      background: rgba(250,246,236,0.85);
       backdrop-filter: blur(6px);
       color: var(--eggshell-dim);
       font-family: var(--font-body);
@@ -258,11 +258,11 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       padding: 9px 10px 9px 18px;
       border-radius: 24px;
       border: 1px solid var(--border-active);
-      background: rgba(19,16,12,0.88);
+      background: rgba(250,246,236,0.92);
       backdrop-filter: blur(8px);
       font-size: 12.5px;
       color: var(--eggshell-dim);
-      box-shadow: 0 10px 36px rgba(0,0,0,0.55);
+      box-shadow: 0 10px 36px rgba(80,55,25,0.25);
     }
     .drive-status.on { display: flex; }
     .drive-status b { color: var(--gold-leaf); font-weight: 500; }
@@ -334,7 +334,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #1a120c;
+      color: #fff9ec;
     }
     .era-label { font-size: 11px; color: var(--muted); font-style: italic; }
 
@@ -420,7 +420,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       justify-content: center;
       gap: 18px;
       padding: 7px 16px;
-      background: linear-gradient(0deg, rgba(11,10,8,0.95) 0%, rgba(20,17,13,0.9) 100%);
+      background: linear-gradient(0deg, rgba(250,246,236,0.96) 0%, rgba(242,236,223,0.92) 100%);
       border-top: 1px solid var(--border);
       font-size: 11px;
       font-weight: 300;
@@ -510,7 +510,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         border-top: 1px solid var(--border-active);
         border-radius: 16px 16px 0 0;
         z-index: 20;
-        box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+        box-shadow: 0 -8px 40px rgba(80,55,25,0.25);
       }
       .side-panel.open { animation: sheetSlide 0.3s ease-out; }
       @keyframes sheetSlide { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
@@ -615,14 +615,11 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       event: 'Sự kiện', place: 'Địa danh', era: 'Thời kỳ'
     };
 
-    // scene tokens — Phố đêm lồng đèn
-    const COL_GROUND = 0x0d0b08;
-    const COL_ROAD = 0x17120c;
-    const COL_FOG = 0x140a06;
-    const COL_LANTERN = ['#eccd84', '#c4452a', '#6f9a86'];
-    const COL_WINDOW = new THREE.Color('#d9862f');
-    const COL_WINDOW_DARK = new THREE.Color('#241a10');
-    const COL_MOON = 0x4a5a74;
+    // scene tokens — Phố cổ ban ngày (Peregrino daylight recipe)
+    const COL_ROAD = 0xb3a58c;                        // sun-warmed stone
+    const COL_FOG = 0xcfdfe8;                         // pale morning haze
+    const COL_WINDOW = new THREE.Color('#ffd773');    // warm glow for the selected house
+    const COL_GLASS = new THREE.Color('#5a6d7c');     // daylight window glass w/ sky reflection
 
     document.getElementById('nodeCount').textContent = WIKI_DATA.nodes.length;
     document.getElementById('edgeCount').textContent = WIKI_DATA.edges.length;
@@ -684,13 +681,20 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
 
       // ── renderer / scene / camera ──
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0b0a08);
-      const fog = new THREE.FogExp2(COL_FOG, 0.0012);
+      scene.background = new THREE.Color(0xe2ebf0);
+      const fog = new THREE.FogExp2(COL_FOG, 0.0018);
       scene.fog = fog;
 
       const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 4000);
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.06;
+      const enableShadows = !isMobile;
+      if (enableShadows) {
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      }
       container.appendChild(renderer.domElement);
 
       function resize() {
@@ -702,11 +706,23 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       window.addEventListener('resize', resize);
       resize();
 
-      // ── lights: lantern town under a cool moon ──
-      scene.add(new THREE.HemisphereLight(0x8a6a44, 0x1a140c, 1.45));
-      const moon = new THREE.DirectionalLight(COL_MOON, 0.55);
-      moon.position.set(-120, 220, -80);
-      scene.add(moon);
+      // ── lights: mid-morning sun over the old town ──
+      scene.add(new THREE.HemisphereLight(0xc8dcea, 0x6a7a5c, 1.3));
+      const sun = new THREE.DirectionalLight(0xfff2dc, 1.2);
+      sun.position.set(70, 110, 45);
+      if (enableShadows) {
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(2048, 2048);
+        sun.shadow.camera.left = -130;
+        sun.shadow.camera.right = 130;
+        sun.shadow.camera.top = 130;
+        sun.shadow.camera.bottom = -130;
+        sun.shadow.camera.near = 10;
+        sun.shadow.camera.far = 400;
+        sun.shadow.bias = -0.0006;
+      }
+      scene.add(sun);
+      scene.add(sun.target);
 
       // ── procedural canvas textures (Peregrino-style: no external assets) ──
       function canvasTex(size, draw, repeatX, repeatY) {
@@ -738,8 +754,8 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         }
         // baked shading: eaves darker, ridge catches the light (v=0 is canvas bottom)
         const shade = ctx.createLinearGradient(0, s, 0, 0);
-        shade.addColorStop(0, 'rgba(0,0,0,0.42)');
-        shade.addColorStop(1, 'rgba(255,225,180,0.12)');
+        shade.addColorStop(0, 'rgba(0,0,0,0.24)');
+        shade.addColorStop(1, 'rgba(255,235,200,0.2)');
         ctx.fillStyle = shade;
         ctx.fillRect(0, 0, s, s);
       }, 2, 2);
@@ -755,16 +771,26 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         ctx.fillStyle = 'rgba(70,50,30,0.25)';
         ctx.fillRect(0, s - 7, s, 7); // damp base line
       });
-      // packed-earth ground
-      const groundTex = canvasTex(128, (ctx, s) => {
-        ctx.fillStyle = '#151109';
+      // sunlit grass (Peregrino: #9aa882 base + blobs + strokes)
+      const groundTex = canvasTex(256, (ctx, s) => {
+        ctx.fillStyle = '#9aa882';
         ctx.fillRect(0, 0, s, s);
-        for (let i = 0; i < 420; i++) {
+        for (let i = 0; i < 160; i++) {
           const v = Math.random();
-          ctx.fillStyle = 'rgba(' + (30 + v * 30 | 0) + ',' + (24 + v * 20 | 0) + ',' + (14 + v * 12 | 0) + ',0.5)';
-          ctx.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 3, 1 + Math.random() * 3);
+          ctx.fillStyle = 'rgba(' + (95 + v * 50 | 0) + ',' + (125 + v * 45 | 0) + ',' + (70 + v * 35 | 0) + ',0.35)';
+          ctx.beginPath();
+          ctx.arc(Math.random() * s, Math.random() * s, 3 + Math.random() * 9, 0, 7);
+          ctx.fill();
         }
-      }, 220, 220);
+        for (let i = 0; i < 900; i++) {
+          ctx.strokeStyle = 'rgba(' + (70 + Math.random() * 40 | 0) + ',' + (100 + Math.random() * 40 | 0) + ',60,0.3)';
+          const x = Math.random() * s, y = Math.random() * s;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + Math.random() * 3 - 1.5, y - 2 - Math.random() * 3);
+          ctx.stroke();
+        }
+      }, 200, 200);
 
       // hipped roof: unit base 1×1, ridge along x at y=1 (non-indexed → flat shading)
       function makeHipRoofGeo() {
@@ -788,43 +814,60 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       }
       const hipRoofGeo = makeHipRoofGeo();
 
-      // ── sky: gradient dome + stars + moon (fog-exempt) ──
+      // ── sky: pale morning gradient dome + drifting clouds (Peregrino recipe) ──
       const skyMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
         fog: false,
         uniforms: {
-          top: { value: new THREE.Color(0x090812) },
-          horizon: { value: new THREE.Color(0x2b130a) }
+          top: { value: new THREE.Color(0x8db8d4) },
+          horizon: { value: new THREE.Color(0xe2ebf0) }
         },
         vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
         fragmentShader: 'varying vec3 vP; uniform vec3 top; uniform vec3 horizon;'
-          + ' void main(){ float h = clamp(normalize(vP).y, 0.0, 1.0);'
-          + ' gl_FragColor = vec4(mix(horizon, top, pow(h, 0.55)), 1.0); }'
+          + ' void main(){ float h = clamp(normalize(vP).y * 1.6 + 0.12, 0.0, 1.0);'
+          + ' gl_FragColor = vec4(mix(horizon, top, pow(h, 0.75)), 1.0); }'
       });
-      const sky = new THREE.Mesh(new THREE.SphereGeometry(2600, 20, 12), skyMat);
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(2600, 24, 14), skyMat);
+      sky.position.set(0, 0, (CITY.bounds.minZ + CITY.bounds.maxZ) / 2);
       scene.add(sky);
 
-      const starPos = [];
-      for (let i = 0; i < 550; i++) {
-        const a = hash01('star:' + i) * Math.PI * 2;
-        const r = 900 + hash01('starr:' + i) * 1300;
-        const y = 220 + hash01('stary:' + i) * 1100;
-        starPos.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      const cloudTex = canvasTex(256, (ctx, s) => {
+        for (let i = 0; i < 22; i++) {
+          const x = Math.random() * s, y = s * 0.3 + Math.random() * s * 0.4;
+          const r = 20 + Math.random() * 46;
+          const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+          g.addColorStop(0, 'rgba(248,250,252,0.5)');
+          g.addColorStop(1, 'rgba(248,250,252,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, s, s);
+        }
+      });
+      const clouds = [];
+      const cityMidZ = (CITY.bounds.minZ + CITY.bounds.maxZ) / 2;
+      for (let i = 0; i < 9; i++) {
+        const mat = new THREE.SpriteMaterial({
+          map: cloudTex, transparent: true, opacity: 0.4 + hash01('co:' + i) * 0.25,
+          depthWrite: false, fog: false
+        });
+        const sp = new THREE.Sprite(mat);
+        const a = hash01('ca:' + i) * Math.PI * 2;
+        const r = 220 + hash01('crr:' + i) * 480;
+        sp.position.set(Math.cos(a) * r, 170 + hash01('cy:' + i) * 130, cityMidZ + Math.sin(a) * r);
+        const cw = 140 + hash01('cs:' + i) * 190;
+        sp.scale.set(cw, cw * 0.42, 1);
+        sp.userData.speed = 1.0 + hash01('cv:' + i) * 1.6;
+        scene.add(sp);
+        clouds.push(sp);
       }
-      const starGeo = new THREE.BufferGeometry();
-      starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-      scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
-        color: 0xbfc8dd, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.7,
-        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
-      })));
 
       // ── ground ──
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(6000, 6000),
-        new THREE.MeshLambertMaterial({ color: 0xa89478, map: groundTex })
+        new THREE.MeshLambertMaterial({ color: 0xb6bc98, map: groundTex })
       );
       ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = enableShadows;
       scene.add(ground);
 
       // ── roads: merged quads ──
@@ -847,7 +890,9 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       const roadGeo = new THREE.BufferGeometry();
       roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(roadPos, 3));
       roadGeo.computeVertexNormals();
-      scene.add(new THREE.Mesh(roadGeo, new THREE.MeshLambertMaterial({ color: COL_ROAD })));
+      const roadMesh = new THREE.Mesh(roadGeo, new THREE.MeshLambertMaterial({ color: COL_ROAD }));
+      roadMesh.receiveShadow = enableShadows;
+      scene.add(roadMesh);
 
       // gold avenue edge lines
       const edgeLinePos = [];
@@ -856,7 +901,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       const edgeGeo = new THREE.BufferGeometry();
       edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgeLinePos, 3));
       scene.add(new THREE.LineSegments(edgeGeo,
-        new THREE.LineBasicMaterial({ color: 0x9a7e42, transparent: true, opacity: 0.5 })));
+        new THREE.LineBasicMaterial({ color: 0xf4f6f2, transparent: true, opacity: 0.6 })));
 
       // ── buildings: textured walls + eaves trim + hipped tile roofs + columns ──
       const N = buildings.length;
@@ -907,10 +952,11 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         const node = nodeById.get(b.id);
         const type = node ? node.type : 'unknown';
         const typeCol = new THREE.Color(TYPE_COLORS[type] || '#888888');
-        const wall = typeCol.clone().multiplyScalar(0.62);
+        // sun-bleached plaster with a whisper of the type color — roofs carry the hue
+        const wall = typeCol.clone().lerp(new THREE.Color('#eee2c8'), 0.7);
         const roof = typeCol.clone().multiplyScalar(0.95);
         // neutral tile texture × type color = color-coded roofscape from above
-        const hip = typeCol.clone().lerp(new THREE.Color('#c08a5a'), 0.12);
+        const hip = typeCol.clone().lerp(new THREE.Color('#c08a5a'), 0.12).multiplyScalar(1.1);
         wallBase.push(wall);
         roofBase.push(roof);
         hipBase.push(hip);
@@ -929,6 +975,9 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         hipMesh.setMatrixAt(N + k, dummy.matrix);
         hipMesh.setColorAt(N + k, hipBase[bi]);
       });
+      wallMesh.castShadow = wallMesh.receiveShadow = enableShadows;
+      roofMesh.castShadow = enableShadows;
+      hipMesh.castShadow = enableShadows;
       scene.add(wallMesh);
       scene.add(roofMesh);
       scene.add(hipMesh);
@@ -1004,7 +1053,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         gateMesh.setMatrixAt(i * 3 + 2, dummy.matrix);
 
         const banner = new SpriteText(d.label);
-        banner.color = '#d9b25a';
+        banner.color = '#6e4a0e';
         banner.textHeight = 3.4;
         banner.fontFace = 'Newsreader, Georgia, serif';
         banner.fontWeight = '700';
@@ -1016,24 +1065,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       });
       scene.add(gateMesh);
 
-      // ── lanterns along road edges ──
-      const lanternPos = [];
-      const lanternCol = [];
-      const step = isMobile ? 12 : 6;
-      CITY.roads.edges.forEach(e => {
-        const a = CITY.roads.nodes[e.a].p, b = CITY.roads.nodes[e.b].p;
-        const len = Math.hypot(b.x - a.x, b.z - a.z);
-        const off = (e.kind === 'avenue' ? 4.5 : 1.3) + 0.6;
-        const ux = (b.x - a.x) / (len || 1), uz = (b.z - a.z) / (len || 1);
-        for (let s = step / 2; s < len; s += step) {
-          const px = a.x + ux * s, pz = a.z + uz * s;
-          [[-uz, ux], [uz, -ux]].forEach(([nx, nz], side) => {
-            const c = new THREE.Color(COL_LANTERN[Math.floor(hash01(px + ':' + pz + ':' + side) * 3)]);
-            lanternPos.push(px + nx * off, 2.7, pz + nz * off);
-            lanternCol.push(c.r, c.g, c.b);
-          });
-        }
-      });
+      // glow texture (car lights, selection halo)
       const lanternTex = (() => {
         const cv = document.createElement('canvas');
         cv.width = cv.height = 64;
@@ -1046,23 +1078,6 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         ctx.fillRect(0, 0, 64, 64);
         return new THREE.CanvasTexture(cv);
       })();
-      const lanternGeo = new THREE.BufferGeometry();
-      lanternGeo.setAttribute('position', new THREE.Float32BufferAttribute(lanternPos, 3));
-      lanternGeo.setAttribute('color', new THREE.Float32BufferAttribute(lanternCol, 3));
-      const lanternMat = new THREE.PointsMaterial({
-        size: 2.4, map: lanternTex, vertexColors: true, transparent: true,
-        blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
-      });
-      scene.add(new THREE.Points(lanternGeo, lanternMat));
-
-      // ── moon (cool counterpoint to the lantern warmth) ──
-      const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: lanternTex, color: 0x9fb3d8, transparent: true, opacity: 0.9,
-        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
-      }));
-      moonSprite.scale.setScalar(150);
-      moonSprite.position.set(-620, 520, (CITY.bounds.minZ + CITY.bounds.maxZ) / 2 - 300);
-      scene.add(moonSprite);
 
       // ── trees: instanced trunks + canopies in the district gaps and behind back lanes ──
       const treeSpots = [];
@@ -1100,9 +1115,10 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         dummy.scale.set(cr, cr * 1.15, cr);
         dummy.updateMatrix();
         canopyMesh.setMatrixAt(i, dummy.matrix);
-        canopyTint.setHSL(0.32 + hash01('ch:' + i) * 0.06, 0.32, 0.16 + hash01('cl:' + i) * 0.08);
+        canopyTint.setHSL(0.28 + hash01('ch:' + i) * 0.08, 0.42, 0.3 + hash01('cl:' + i) * 0.1);
         canopyMesh.setColorAt(i, canopyTint);
       });
+      trunkMesh.castShadow = canopyMesh.castShadow = enableShadows;
       scene.add(trunkMesh);
       scene.add(canopyMesh);
 
@@ -1154,6 +1170,8 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         t.position.set(x, 0.68, -1.62);
         car.add(t);
       });
+      car.traverse(o => { if (o.isMesh) o.castShadow = enableShadows; });
+      headMat.opacity = 0.45; // daytime headlights, just a hint
       const gate0 = CITY.districts[0] ? CITY.districts[0].gate : { x: 0, z: 0 };
       car.position.set(2.5, 0, gate0.z + 4);
       scene.add(car);
@@ -1187,9 +1205,9 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         if (!pts.length) return;
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        // crimson silk threads — read against the pale sky
         arcLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({
-          color: 0xeccd84, transparent: true, opacity: 0.55,
-          blending: THREE.AdditiveBlending, depthWrite: false
+          color: 0xb9231e, transparent: true, opacity: 0.75, depthWrite: false
         }));
         scene.add(arcLines);
       }
@@ -1200,28 +1218,33 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       let highlightSet = null; // Set of building ids (selected + neighbors) or null
 
       const tmpColor = new THREE.Color();
+      const HAZE = new THREE.Color(0xd6dfe2); // daylight dimming = fade into the morning haze
+      function fadeAmount(typeOn, inHl) {
+        if (!typeOn) return 0.78;
+        if (!inHl) return 0.6;
+        return 0;
+      }
       function applyColors() {
         buildings.forEach((b, i) => {
           const node = nodeById.get(b.id);
           const typeOn = node ? activeTypes.has(node.type) : true;
           const inHl = !highlightSet || highlightSet.has(b.id);
-          let mul = 1;
-          if (!typeOn) mul = 0.18;
-          else if (!inHl) mul = 0.3;
-          wallMesh.setColorAt(i, tmpColor.copy(wallBase[i]).multiplyScalar(mul));
-          roofMesh.setColorAt(i, tmpColor.copy(roofBase[i]).multiplyScalar(
-            b.id === selectedId ? 1.5 : mul));
-          hipMesh.setColorAt(i, tmpColor.copy(hipBase[i]).multiplyScalar(
-            b.id === selectedId ? 1.35 : mul));
+          const fade = fadeAmount(typeOn, inHl);
+          const sel = b.id === selectedId;
+          wallMesh.setColorAt(i, tmpColor.copy(wallBase[i]).lerp(HAZE, fade));
+          roofMesh.setColorAt(i, tmpColor.copy(roofBase[i]).lerp(HAZE, fade)
+            .multiplyScalar(sel ? 1.4 : 1));
+          hipMesh.setColorAt(i, tmpColor.copy(hipBase[i]).lerp(HAZE, fade)
+            .multiplyScalar(sel ? 1.25 : 1));
         });
         tierOwners.forEach((bi, k) => {
           const b = buildings[bi];
           const node = nodeById.get(b.id);
           const typeOn = node ? activeTypes.has(node.type) : true;
           const inHl = !highlightSet || highlightSet.has(b.id);
-          const mul = !typeOn ? 0.18 : (!inHl ? 0.3 : 1);
-          hipMesh.setColorAt(N + k, tmpColor.copy(hipBase[bi]).multiplyScalar(
-            b.id === selectedId ? 1.35 : mul));
+          const fade = fadeAmount(typeOn, inHl);
+          hipMesh.setColorAt(N + k, tmpColor.copy(hipBase[bi]).lerp(HAZE, fade)
+            .multiplyScalar(b.id === selectedId ? 1.25 : 1));
         });
         wallMesh.instanceColor.needsUpdate = true;
         roofMesh.instanceColor.needsUpdate = true;
@@ -1233,11 +1256,14 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           const inHl = !highlightSet || highlightSet.has(b.id);
           const isSel = b.id === selectedId;
           let c;
-          if (!winLit[w] && !isSel) c = COL_WINDOW_DARK;
-          else if (isSel) c = tmpColor.copy(COL_WINDOW).multiplyScalar(1.5);
-          else if (!typeOn) c = tmpColor.copy(COL_WINDOW).multiplyScalar(0.12);
-          else if (!inHl) c = tmpColor.copy(COL_WINDOW).multiplyScalar(0.22);
-          else c = tmpColor.copy(COL_WINDOW).multiplyScalar(highlightSet ? 1.25 : 1);
+          if (isSel) c = tmpColor.copy(COL_WINDOW).multiplyScalar(1.3); // the visited house lights up
+          else if (highlightSet && inHl && typeOn) c = tmpColor.copy(COL_WINDOW).multiplyScalar(0.85);
+          else {
+            // daylight glass — subtle sky-reflection variation
+            c = tmpColor.copy(COL_GLASS).multiplyScalar(winLit[w] ? 1.18 : 0.85);
+            if (!typeOn) c.lerp(HAZE, 0.7);
+            else if (highlightSet && !inHl) c.lerp(HAZE, 0.5);
+          }
           winMesh.setColorAt(w, c);
         }
         winMesh.instanceColor.needsUpdate = true;
@@ -1254,7 +1280,10 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         const b = buildings[i];
         const node = nodeById.get(b.id);
         const s = new SpriteText(node ? node.title : b.id);
-        s.color = '#ece3d0';
+        s.color = '#2b241a';
+        s.backgroundColor = 'rgba(250,246,236,0.72)';
+        s.padding = 1.5;
+        s.borderRadius = 3;
         s.textHeight = 2.2;
         s.fontFace = 'Be Vietnam Pro, sans-serif';
         s.fontWeight = '500';
@@ -1266,15 +1295,15 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         labelOf[i] = s;
         return s;
       }
-      const MAX_LABELS = isMobile ? 5 : 8;
+      const MAX_LABELS = isMobile ? 4 : 6;
       function updateLabels(force) {
         const now = performance.now();
         if (!force && now - labelTick < 120) return;
         labelTick = now;
         const cam = camera.position;
-        // adaptive fog: warm depth at every zoom, never a blackout
+        // adaptive morning haze: dense at street level, thin from the air (Peregrino)
         const viewDist = cam.distanceTo(controls.target);
-        fog.density = 0.55 / Math.max(140, viewDist * 2.4);
+        fog.density = 0.95 / Math.max(240, viewDist * 2.2);
 
         // labels blow up when the camera is almost on top of them — fade them out
         const nearFade = d => Math.max(0, Math.min(1, (d - 8) / 8));
@@ -1290,8 +1319,14 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         }
         const nearOnly = candidates.filter(c => !c.forced).sort((a, b) => a.d - b.d);
         const allowed = new Set(nearOnly.slice(0, MAX_LABELS).map(c => c.i));
+        // forced (selection neighborhood) also capped — nearest few, selected always
+        const selIdx = selectedId ? idxById.get(selectedId) : -1;
+        const forcedNear = candidates.filter(c => c.forced && c.i !== selIdx)
+          .sort((a, b) => a.d - b.d).slice(0, 9);
+        const allowedForced = new Set(forcedNear.map(c => c.i));
+        if (selIdx !== -1) allowedForced.add(selIdx);
         for (const c of candidates) {
-          if (!c.forced && !allowed.has(c.i)) {
+          if ((c.forced && !allowedForced.has(c.i)) || (!c.forced && !allowed.has(c.i))) {
             if (labelOf[c.i]) labelOf[c.i].visible = false;
             continue;
           }
@@ -1793,9 +1828,15 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           clampTarget();
           controls.update();
         }
+        // drifting clouds + sun tracking the view (keeps shadows crisp anywhere)
         if (!reduceMotion) {
-          lanternMat.size = 2.4 + Math.sin(now * 0.0016) * 0.25;
+          for (const cl of clouds) {
+            cl.position.x += cl.userData.speed * dt;
+            if (cl.position.x > 760) cl.position.x = -760;
+          }
         }
+        sun.position.set(controls.target.x + 70, 110, controls.target.z + 45);
+        sun.target.position.set(controls.target.x, 0, controls.target.z);
         syncEraStrip();
         updateLabels();
         renderer.render(scene, camera);
