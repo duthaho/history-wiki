@@ -102,13 +102,13 @@ export const ERA_LABELS: Record<string, string> = {
 
 // ── city constants ──
 const AVENUE_W = 16; // avenue width
-const SETBACK = 6; // sidewalk depth between avenue edge / lane and first plot
-const PITCH = 12; // plot pitch, both axes
-const GATE_PAD = 10; // breathing room after a district gate before the first row
-const DISTRICT_GAP = 8; // dark gap between districts
+const SETBACK = 9; // sidewalk depth between avenue edge / lane and first plot
+const PITCH = 19; // plot pitch, both axes — generous spacing between houses
+const GATE_PAD = 12; // breathing room after a district gate before the first row
+const DISTRICT_GAP = 14; // green gap between districts
 const MAX_COLS = 3; // max building columns per side
 const JITTER = 2.5; // total jitter span (±1.25)
-const BUILDING_Z_OFFSET = 6; // building center sits this far past its lane (front edge clears the roadway)
+const BUILDING_Z_OFFSET = 8; // building center sits this far past its lane (front edge clears the roadway)
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
@@ -328,6 +328,19 @@ export function computeCityLayout(data: GraphData): CityLayout {
         }
       }
     });
+
+    // parallel back streets: link the same column across consecutive rows, so the
+    // district is a real grid — every house reachable by more than one route
+    for (const side of [-1, 1] as const) {
+      for (let r = 1; r < plan.rows.length; r++) {
+        const prevLanes = laneNodeIds[r - 1][side];
+        const curLanes = laneNodeIds[r][side];
+        const shared = Math.min(prevLanes.length, curLanes.length);
+        for (let col = 0; col < shared; col++) {
+          addRoadEdge(prevLanes[col], curLanes[col], 'street');
+        }
+      }
+    }
 
     for (const b of plan.buildings) {
       const portal = laneNodeIds[b.slot.row][b.slot.side][b.slot.col];

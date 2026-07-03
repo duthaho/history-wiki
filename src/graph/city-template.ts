@@ -407,6 +407,107 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       transform: translate(-50%, -50%);
     }
 
+    /* ─── Highlights list (H) ─── */
+    .hl-panel {
+      position: absolute;
+      right: 16px;
+      bottom: 18px;
+      z-index: 5;
+      width: 280px;
+      padding: 12px 6px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border-active);
+      background: rgba(250,246,236,0.94);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 12px 40px rgba(80,55,25,0.25);
+      display: none;
+    }
+    .hl-panel.on { display: block; }
+    .hl-title {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 10px 8px;
+    }
+    .hl-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      text-align: left;
+      padding: 7px 10px;
+      background: none;
+      border: none;
+      border-radius: 6px;
+      color: var(--eggshell-dim);
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .hl-item:hover { background: rgba(156,114,28,0.1); color: var(--eggshell); }
+    .hl-item .num {
+      min-width: 18px;
+      padding: 1px 4px;
+      border: 1px solid var(--border-active);
+      border-radius: 4px;
+      background: var(--elevated);
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--gold-bright);
+    }
+    .hl-item .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .hl-item .era { margin-left: auto; font-size: 9.5px; color: var(--muted); font-style: italic; }
+
+    /* ─── Pause overlay (Esc) ─── */
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30,24,14,0.55);
+      backdrop-filter: blur(3px);
+    }
+    .pause-overlay.on { display: flex; }
+    .pause-card { text-align: center; }
+    .pause-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 34px;
+    }
+    .pause-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 12px;
+      font-size: 17px;
+      color: #f3ead6;
+      font-family: var(--font-body);
+      font-weight: 300;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    }
+    .pause-row b {
+      color: #ffd773;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+    .pause-foot {
+      font-size: 15px;
+      color: #ffd773;
+      font-family: var(--font-body);
+      text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 768px) {
+      .hl-panel { right: 8px; bottom: 8px; width: 240px; }
+      .pause-row { font-size: 14px; }
+      .pause-foot { font-size: 13px; }
+    }
+
     /* ─── Side panel (shared with graph page) ─── */
     .side-panel {
       width: 420px;
@@ -674,8 +775,18 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         <button class="skip-btn" id="skipBtn">Đến ngay ↦</button>
       </div>
       <div class="drive-hud" id="driveHud">
-        <div><b>W</b>/<b>↑</b> tiến &nbsp; <b>S</b>/<b>↓</b> lùi &nbsp; <b>A D</b>/<b>←→</b> rẽ</div>
-        <div><b>Shift</b> tăng tốc &nbsp; <b>E</b> xem nhà &nbsp; <b>M</b> toàn cảnh</div>
+        <div><b>W</b>/<b>↑</b> tiến &nbsp; <b>S</b>/<b>↓</b> lùi &nbsp; <b>A D</b>/<b>←→</b> rẽ &nbsp; <b>Shift</b> tăng tốc</div>
+        <div><b>E</b> xem nhà &nbsp; <b>M</b> toàn cảnh &nbsp; <b>H</b> nổi bật &nbsp; <b>Esc</b> tạm dừng</div>
+      </div>
+      <div class="hl-panel" id="hlPanel">
+        <div class="hl-title">Điểm nổi bật — nhấn số để tới</div>
+        <div id="hlList"></div>
+      </div>
+      <div class="pause-overlay" id="pauseOverlay">
+        <div class="pause-card">
+          <div class="pause-rows" id="pauseRows"></div>
+          <div class="pause-foot">Tạm dừng — nhấn phím bất kỳ hoặc chạm để tiếp tục</div>
+        </div>
       </div>
       <button class="near-prompt" id="nearPrompt"><span class="key">E</span> Xem&nbsp;<b id="nearTitle"></b></button>
       <div class="district-chip" id="districtChip"></div>
@@ -1000,7 +1111,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       }
       CITY.roads.edges.forEach(e => {
         const a = CITY.roads.nodes[e.a].p, b = CITY.roads.nodes[e.b].p;
-        addRoadQuad(a, b, e.kind === 'avenue' ? 9 : 2.6);
+        addRoadQuad(a, b, e.kind === 'avenue' ? 10 : 4.2);
       });
       const roadGeo = new THREE.BufferGeometry();
       roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(roadPos, 3));
@@ -1648,10 +1759,33 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       }
 
       window.addEventListener('keydown', e => {
-        if (document.activeElement === searchBox) return;
+        if (document.activeElement === searchBox) {
+          if (e.code === 'Escape') { searchBox.blur(); searchResults.classList.remove('open'); }
+          return;
+        }
+        if (paused) { // any key resumes (Peregrino pause pattern)
+          e.preventDefault();
+          setPaused(false);
+          return;
+        }
+        if (e.code === 'Escape') {
+          if (searchResults.classList.contains('open')) searchResults.classList.remove('open');
+          else if (document.getElementById('hlPanel').classList.contains('on')) toggleHlPanel(false);
+          else if (document.getElementById('sidePanel').classList.contains('open')) closePanel();
+          else setPaused(true);
+          return;
+        }
         keys[e.code] = true;
         if (e.code === 'KeyE' || e.code === 'Enter') openNearest();
         if (e.code === 'KeyM') setMode(mode === 'drive' ? 'aerial' : 'drive');
+        if (e.code === 'KeyH') toggleHlPanel();
+        if (e.code.startsWith('Digit')) {
+          const k = parseInt(e.code.slice(5), 10);
+          if (k >= 1 && k <= highlights.length) {
+            toggleHlPanel(false);
+            driveTo(nodeById.get(highlights[k - 1].id));
+          }
+        }
         if (e.code.startsWith('Arrow')) e.preventDefault();
         hideHint();
       });
@@ -1720,7 +1854,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         if (now - lastProx < 150) return;
         lastProx = now;
         if (mode !== 'drive' || drive) { setPrompt(-1); return; }
-        let best = -1, bd = 16 * 16;
+        let best = -1, bd = 22 * 22;
         for (let i = 0; i < N; i++) {
           const b = buildings[i];
           const d2 = (b.position.x - car.position.x) ** 2 + (b.position.z - car.position.z) ** 2;
@@ -1761,6 +1895,68 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       };
       joyEl.addEventListener('pointerup', joyEnd);
       joyEl.addEventListener('pointercancel', joyEnd);
+
+      // ── highlights (H): the city's landmarks — one per era, best-connected first ──
+      const highlights = [];
+      {
+        const byDeg = [...WIKI_DATA.nodes].sort((a, b) => (deg[b.id] || 0) - (deg[a.id] || 0));
+        const seenEra = new Set();
+        for (const n of byDeg) {
+          if (highlights.length >= 8) break;
+          if (seenEra.has(n.era)) continue;
+          seenEra.add(n.era);
+          highlights.push(n);
+        }
+        for (const n of byDeg) {
+          if (highlights.length >= 8) break;
+          if (!highlights.includes(n)) highlights.push(n);
+        }
+        highlights.sort((a, b) => {
+          const da = districtByEra.get(a.era), db = districtByEra.get(b.era);
+          return (da ? da.index : 99) - (db ? db.index : 99);
+        });
+      }
+      const hlPanel = document.getElementById('hlPanel');
+      const hlList = document.getElementById('hlList');
+      highlights.forEach((n, i) => {
+        const item = document.createElement('button');
+        item.className = 'hl-item';
+        const d = districtByEra.get(n.era);
+        item.innerHTML = '<span class="num">' + (i + 1) + '</span>'
+          + '<span class="dot" style="background:' + (TYPE_COLORS[n.type] || '#888') + '"></span>'
+          + n.title + '<span class="era">' + (d ? d.label : n.era) + '</span>';
+        item.addEventListener('click', () => {
+          toggleHlPanel(false);
+          driveTo(nodeById.get(n.id));
+        });
+        hlList.appendChild(item);
+      });
+      function toggleHlPanel(force) {
+        hlPanel.classList.toggle('on', force !== undefined ? force : !hlPanel.classList.contains('on'));
+      }
+
+      // ── pause overlay (Esc) — Peregrino's controls menu ──
+      let paused = false;
+      const pauseOverlay = document.getElementById('pauseOverlay');
+      const pauseRows = document.getElementById('pauseRows');
+      const ROWS = isMobile
+        ? [['Cần trái', 'Lái xe'], ['Chạm nhà', 'Tự lái tới nơi'], ['Nút Xem', 'Mở bài viết'],
+           ['Toàn cảnh', 'Chế độ bản đồ'], ['Dải màu dưới', 'Nhảy tới thời kỳ']]
+        : [['W A S D / ↑ ↓', 'Lái xe'], ['← →', 'Rẽ'], ['Shift', 'Tăng tốc'],
+           ['E / Click', 'Xem di tích'], ['M', 'Toàn cảnh'], ['H', 'Điểm nổi bật'],
+           ['1–' + highlights.length, 'Đến điểm nổi bật'], ['Esc', 'Tạm dừng']];
+      ROWS.forEach(([k, label]) => {
+        const row = document.createElement('div');
+        row.className = 'pause-row';
+        row.innerHTML = '<b>' + k + '</b> ' + label;
+        pauseRows.appendChild(row);
+      });
+      function setPaused(p) {
+        paused = p;
+        pauseOverlay.classList.toggle('on', p);
+      }
+      pauseOverlay.addEventListener('pointerdown', () => setPaused(false));
+      setPaused(true); // open like Peregrino: the controls ARE the intro
 
       // ── selection ──
       function applySelection(node) {
@@ -1912,12 +2108,6 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         requestAnimationFrame(resize);
       }
       document.getElementById('panelClose').addEventListener('click', closePanel);
-      window.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          document.getElementById('searchResults').classList.remove('open');
-          closePanel();
-        }
-      });
 
       // ── legend filters ──
       function syncLegend() {

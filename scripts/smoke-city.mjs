@@ -28,8 +28,22 @@ page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(String(e)));
 await page.goto('http://localhost:8125/city.html');
 await page.waitForTimeout(7000);
-check(await page.locator('#driveHud').isVisible(), 'drive HUD visible on load (drive mode default)');
+check(await page.locator('#pauseOverlay.on').count() > 0, 'controls menu shown on load (paused)');
+await page.screenshot({ path: 'city-0-pause.png' });
+await page.keyboard.press('x'); // any key resumes
+await page.waitForTimeout(500);
+check(await page.locator('#pauseOverlay.on').count() === 0, 'any key resumes');
+check(await page.locator('#driveHud').isVisible(), 'drive HUD visible (drive mode default)');
 await page.screenshot({ path: 'city-1-intro.png' });
+
+// H opens highlights; digit drives there
+await page.keyboard.press('h');
+await page.waitForTimeout(400);
+check(await page.locator('#hlPanel.on').count() > 0, 'H opens highlights list');
+check(await page.locator('.hl-item').count() >= 6, 'highlights list has landmarks');
+await page.screenshot({ path: 'city-0b-highlights.png' });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
 
 // manual driving: hold W, expect a near-prompt while passing houses
 await page.keyboard.down('w');

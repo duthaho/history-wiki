@@ -152,8 +152,8 @@ describe('computeCityLayout', () => {
 
   it('puts the highest-degree node on avenue frontage', () => {
     const hub = layout.buildings.find((b) => b.id === 'hub')!;
-    // frontage plots sit at |x| = AVENUE_W/2 + SETBACK = 14 (±jitter)
-    expect(Math.abs(hub.position.x)).toBeLessThan(16);
+    // frontage plots sit at |x| = AVENUE_W/2 + SETBACK = 17 (±jitter)
+    expect(Math.abs(hub.position.x)).toBeLessThan(19.5);
   });
 
   it('road edges all have positive length and valid endpoints', () => {
