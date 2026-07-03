@@ -299,6 +299,114 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
     .empty-hint.gone { opacity: 0 !important; animation: none; }
     @keyframes fadeHint { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
 
+    /* ─── Drive-tour HUD ─── */
+    .drive-hud {
+      position: absolute;
+      bottom: 18px;
+      left: 16px;
+      z-index: 3;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(250,246,236,0.88);
+      backdrop-filter: blur(6px);
+      font-size: 11px;
+      line-height: 1.9;
+      color: var(--eggshell-dim);
+      letter-spacing: 0.03em;
+    }
+    .drive-hud b {
+      display: inline-block;
+      min-width: 16px;
+      padding: 1px 5px;
+      border: 1px solid var(--border-active);
+      border-radius: 4px;
+      background: var(--elevated);
+      color: var(--eggshell);
+      font-weight: 500;
+      text-align: center;
+      font-size: 10px;
+    }
+
+    .near-prompt {
+      position: absolute;
+      bottom: 78px;
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 24px;
+      border: 1px solid var(--border-active);
+      background: rgba(250,246,236,0.94);
+      color: var(--eggshell);
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(80,55,25,0.28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .near-prompt.on { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+    .near-prompt .key {
+      padding: 2px 8px;
+      border: 1px solid var(--border-active);
+      border-radius: 4px;
+      background: var(--gold-leaf);
+      color: #fff9ec;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .near-prompt b { color: var(--gold-bright); font-weight: 600; }
+
+    .district-chip {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      padding: 5px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(250,246,236,0.85);
+      backdrop-filter: blur(6px);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold-bright);
+      letter-spacing: 0.04em;
+      display: none;
+    }
+    .district-chip.on { display: block; }
+
+    .joystick {
+      position: absolute;
+      bottom: 24px;
+      left: 22px;
+      z-index: 6;
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      border: 2px solid var(--border-active);
+      background: rgba(250,246,236,0.35);
+      display: none;
+      touch-action: none;
+    }
+    .joy-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(156,114,28,0.75);
+      border: 1px solid var(--border-active);
+      transform: translate(-50%, -50%);
+    }
+
     /* ─── Side panel (shared with graph page) ─── */
     .side-panel {
       width: 420px;
@@ -560,11 +668,18 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
     <div class="city-wrap">
       <div class="city-container" id="city"></div>
       <div class="trail" id="trail"></div>
-      <div class="empty-hint" id="hint">Kéo để dạo phố · cuộn để thu phóng · chạm vào một ngôi nhà để ghé thăm</div>
+      <div class="empty-hint" id="hint">Lái xe dọc đại lộ thời gian — đến gần một ngôi nhà, tên sẽ hiện lên</div>
       <div class="drive-status" id="driveStatus">
         <span>Đang tới <b id="driveTarget"></b>…</span>
         <button class="skip-btn" id="skipBtn">Đến ngay ↦</button>
       </div>
+      <div class="drive-hud" id="driveHud">
+        <div><b>W</b>/<b>↑</b> tiến &nbsp; <b>S</b>/<b>↓</b> lùi &nbsp; <b>A D</b>/<b>←→</b> rẽ</div>
+        <div><b>Shift</b> tăng tốc &nbsp; <b>E</b> xem nhà &nbsp; <b>M</b> toàn cảnh</div>
+      </div>
+      <button class="near-prompt" id="nearPrompt"><span class="key">E</span> Xem&nbsp;<b id="nearTitle"></b></button>
+      <div class="district-chip" id="districtChip"></div>
+      <div class="joystick" id="joystick"><div class="joy-knob" id="joyKnob"></div></div>
     </div>
     <div class="side-panel" id="sidePanel">
       <button class="panel-close" id="panelClose">&times;</button>
@@ -1478,17 +1593,11 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         driveStatusEl.classList.remove('on');
         const p = CITY.roads.nodes[b.portal].p;
         car.position.set(p.x, 0, p.z);
-        car.lookAt(b.position.x, 0.4, b.position.z);
-        controls.enabled = true;
-        // facade portrait: from over the avenue, clear of every roofline
-        const toAvenue = b.position.x > 0 ? -1 : 1;
-        const camPos = new THREE.Vector3(
-          b.position.x + toAvenue * (b.width / 2 + 24),
-          Math.max(b.height + 13, 20),
-          b.position.z + 10
-        );
-        const camTarget = new THREE.Vector3(b.position.x, b.height * 0.4, b.position.z);
-        tweenCamera(camPos, camTarget, reduceMotion ? 0 : 700);
+        // hand the wheel back at the doorstep, facing the house
+        carState.heading = Math.atan2(b.position.x - p.x, b.position.z - p.z);
+        carState.speed = 0;
+        car.rotation.set(0, carState.heading, 0);
+        setMode('drive');
         applySelection(node);
       }
 
@@ -1516,6 +1625,142 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       document.getElementById('skipBtn').addEventListener('click', () => {
         if (drive) drive.t0 = -Infinity; // next frame reaches t=1
       });
+
+      // ── drive-tour: you hold the wheel (Peregrino first-person, on four wheels) ──
+      let mode = 'drive'; // 'drive' | 'aerial'
+      const carState = { heading: 0, speed: 0 };
+      const keys = {};
+      const joy = { f: 0, r: 0 };
+      const modeBtn = document.getElementById('overviewBtn');
+      const nearPromptEl = document.getElementById('nearPrompt');
+      const nearTitleEl = document.getElementById('nearTitle');
+      const districtChipEl = document.getElementById('districtChip');
+
+      function setMode(m) {
+        mode = m;
+        modeBtn.textContent = m === 'drive' ? 'Toàn cảnh (M)' : 'Lái xe (M)';
+        document.getElementById('driveHud').style.display = (m === 'drive' && !isMobile) ? '' : 'none';
+        document.getElementById('joystick').style.display = (m === 'drive' && isMobile) ? 'block' : 'none';
+        districtChipEl.classList.toggle('on', m === 'drive');
+        controls.enabled = m === 'aerial';
+        if (m === 'aerial') { setPrompt(-1); overview(); }
+        else camTween = null; // the chase cam owns the camera now
+      }
+
+      window.addEventListener('keydown', e => {
+        if (document.activeElement === searchBox) return;
+        keys[e.code] = true;
+        if (e.code === 'KeyE' || e.code === 'Enter') openNearest();
+        if (e.code === 'KeyM') setMode(mode === 'drive' ? 'aerial' : 'drive');
+        if (e.code.startsWith('Arrow')) e.preventDefault();
+        hideHint();
+      });
+      window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+      // building collision — conservative square footprints, axis-separated moves
+      function collides(x, z) {
+        for (let i = 0; i < N; i++) {
+          const b = buildings[i];
+          const hw = Math.max(b.width, b.depth) / 2 + 1.0;
+          if (Math.abs(x - b.position.x) < hw && Math.abs(z - b.position.z) < hw) return true;
+        }
+        return false;
+      }
+
+      const camLook = new THREE.Vector3();
+      function stepManualDrive(dt) {
+        if (mode !== 'drive' || drive) return;
+        let throttle = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 0.7 : 0);
+        let steer = ((keys.KeyD || keys.ArrowRight) ? 1 : 0) - ((keys.KeyA || keys.ArrowLeft) ? 1 : 0);
+        throttle = Math.max(-1, Math.min(1, throttle + joy.f));
+        steer = Math.max(-1, Math.min(1, steer + joy.r));
+        const maxSpd = keys.ShiftLeft || keys.ShiftRight ? 30 : 15;
+        carState.speed += (throttle * maxSpd - carState.speed) * Math.min(1, 3.5 * dt);
+        if (!throttle && Math.abs(carState.speed) < 0.05) carState.speed = 0;
+        if (carState.speed !== 0) {
+          carState.heading += steer * 1.8 * dt * Math.sign(carState.speed)
+            * Math.min(1, Math.abs(carState.speed) / 5);
+          const dx = Math.sin(carState.heading) * carState.speed * dt;
+          const dz = Math.cos(carState.heading) * carState.speed * dt;
+          if (!collides(car.position.x + dx, car.position.z)) car.position.x += dx;
+          else carState.speed *= 0.35;
+          if (!collides(car.position.x, car.position.z + dz)) car.position.z += dz;
+          else carState.speed *= 0.35;
+          car.position.x = Math.max(CITY.bounds.minX - 30, Math.min(CITY.bounds.maxX + 30, car.position.x));
+          car.position.z = Math.max(CITY.bounds.minZ - 45, Math.min(CITY.bounds.maxZ + 45, car.position.z));
+          wheels.forEach(w => { w.rotation.x += (carState.speed * dt) / 0.34; });
+          hideHint();
+        }
+        car.rotation.set(0, carState.heading, 0);
+        // chase camera — swoops in smoothly even when arriving from aerial mode
+        const dirX = Math.sin(carState.heading), dirZ = Math.cos(carState.heading);
+        const k = 1 - Math.exp(-5 * dt);
+        camera.position.lerp(camLook.set(
+          car.position.x - dirX * 11.5, 5.4, car.position.z - dirZ * 11.5), k);
+        controls.target.lerp(camLook.set(
+          car.position.x + dirX * 7, 1.6, car.position.z + dirZ * 7), k);
+        camera.lookAt(controls.target);
+      }
+
+      // passing a house: its name appears; E (or tap) opens it
+      let promptIdx = -1;
+      let lastProx = 0;
+      function setPrompt(i) {
+        if (i === promptIdx) return;
+        promptIdx = i;
+        hoverIdx = i; // force this house's name label
+        nearPromptEl.classList.toggle('on', i !== -1);
+        if (i !== -1) {
+          const node = nodeById.get(buildings[i].id);
+          nearTitleEl.textContent = node ? node.title : '';
+        }
+        updateLabels(true);
+      }
+      function updateProximity(now) {
+        if (now - lastProx < 150) return;
+        lastProx = now;
+        if (mode !== 'drive' || drive) { setPrompt(-1); return; }
+        let best = -1, bd = 16 * 16;
+        for (let i = 0; i < N; i++) {
+          const b = buildings[i];
+          const d2 = (b.position.x - car.position.x) ** 2 + (b.position.z - car.position.z) ** 2;
+          if (d2 < bd) { bd = d2; best = i; }
+        }
+        setPrompt(best);
+      }
+      function openNearest() {
+        if (promptIdx === -1 || mode !== 'drive') return;
+        const node = nodeById.get(buildings[promptIdx].id);
+        if (node) applySelection(node);
+      }
+      nearPromptEl.addEventListener('click', openNearest);
+
+      // mobile: virtual joystick (left thumb) — Peregrino pattern
+      const joyEl = document.getElementById('joystick');
+      const knobEl = document.getElementById('joyKnob');
+      let joyPointer = null;
+      joyEl.addEventListener('pointerdown', e => {
+        joyPointer = e.pointerId;
+        joyEl.setPointerCapture(e.pointerId);
+        hideHint();
+      });
+      joyEl.addEventListener('pointermove', e => {
+        if (e.pointerId !== joyPointer) return;
+        const r = joyEl.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        joy.r = Math.max(-1, Math.min(1, dx / 42));
+        joy.f = Math.max(-1, Math.min(1, -dy / 42));
+        knobEl.style.transform = 'translate(calc(-50% + ' + (joy.r * 30) + 'px), calc(-50% + ' + (-joy.f * 30) + 'px))';
+      });
+      const joyEnd = e => {
+        if (e.pointerId !== joyPointer) return;
+        joyPointer = null;
+        joy.f = 0; joy.r = 0;
+        knobEl.style.transform = 'translate(-50%, -50%)';
+      };
+      joyEl.addEventListener('pointerup', joyEnd);
+      joyEl.addEventListener('pointercancel', joyEnd);
 
       // ── selection ──
       function applySelection(node) {
@@ -1568,7 +1813,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       });
       if (!isMobile) {
         renderer.domElement.addEventListener('pointermove', e => {
-          if (drive || camTween) return;
+          if (mode !== 'aerial' || drive || camTween) return;
           const idx = pick(e);
           if (idx !== hoverIdx) {
             hoverIdx = idx;
@@ -1701,7 +1946,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         seg.className = 'era-seg';
         seg.title = d.label + ' (' + d.count + ')';
         seg.addEventListener('click', () => {
-          stopIntro();
+          if (mode !== 'aerial') setMode('aerial');
           flyToDistrict(d);
         });
         strip.appendChild(seg);
@@ -1714,25 +1959,30 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           reduceMotion ? 0 : 900
         );
       }
+      let lastDistrict = -1;
       function syncEraStrip() {
-        const z = controls.target.z;
+        const z = mode === 'drive' ? car.position.z : controls.target.z;
         let active = -1;
         CITY.districts.forEach((d, i) => { if (z >= d.zStart - 4 && z <= d.zEnd + 4) active = i; });
         strip.querySelectorAll('.era-seg').forEach((seg, i) => {
           seg.classList.toggle('active', i === active);
         });
+        if (active !== lastDistrict) {
+          lastDistrict = active;
+          districtChipEl.textContent = active === -1 ? '' : CITY.districts[active].label;
+          districtChipEl.classList.toggle('on', mode === 'drive' && active !== -1);
+        }
       }
 
       function overview(ms) {
         tweenCamera(
-          new THREE.Vector3(cityCenter.x + cityLen * 0.34, cityLen * 0.42, cityCenter.z - cityLen * 0.3),
+          new THREE.Vector3(cityCenter.x + cityLen * 0.2, cityLen * 0.24, cityCenter.z - cityLen * 0.19),
           new THREE.Vector3(cityCenter.x, 0, cityCenter.z),
           ms === undefined ? (reduceMotion ? 0 : 1100) : ms
         );
       }
-      document.getElementById('overviewBtn').addEventListener('click', () => {
-        stopIntro();
-        overview();
+      modeBtn.addEventListener('click', () => {
+        setMode(mode === 'drive' ? 'aerial' : 'drive');
       });
 
       // ── search ──
@@ -1779,52 +2029,38 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         setTimeout(() => searchResults.classList.remove('open'), 150);
       });
 
-      // ── hint + intro dolly ──
+      // ── hint ──
       let hintGone = false;
       function hideHint() {
         if (hintGone) return;
         hintGone = true;
         document.getElementById('hint').classList.add('gone');
       }
+      function stopIntro() { hideHint(); }
 
-      let intro = !reduceMotion;
-      function stopIntro() {
-        if (!intro) return;
-        intro = false;
-        hideHint();
-      }
-      renderer.domElement.addEventListener('wheel', stopIntro, { passive: true });
-
-      // opening shot: at the prehistoric gate, looking down the lantern avenue
+      // opening shot: at the wheel, parked at the prehistoric gate
       if (reduceMotion) {
+        setMode('aerial');
         overview(0);
-      } else if (isMobile) {
-        camera.position.set(34, 26, gate0.z - 48);
-        controls.target.set(0, 2, gate0.z + 26);
       } else {
-        camera.position.set(28, 19, gate0.z - 40);
-        controls.target.set(0, 3, gate0.z + 28);
+        carState.heading = 0; // facing down the avenue, into history
+        camera.position.set(car.position.x, 5.4, car.position.z - 11.5);
+        controls.target.set(car.position.x, 1.6, car.position.z + 7);
+        setMode('drive');
       }
 
       // ── main loop ──
       const clock = new THREE.Clock();
-      let introT = 0;
       function animate() {
         requestAnimationFrame(animate);
         const dt = Math.min(0.05, clock.getDelta());
         const now = performance.now();
 
-        if (intro && !drive && !camTween) {
-          // slow dolly down the avenue
-          introT += dt;
-          camera.position.z += dt * 3.2;
-          controls.target.z += dt * 3.2;
-          if (introT > 60) stopIntro();
-        }
-
         stepDrive(now);
+        stepManualDrive(dt);
+        updateProximity(now);
         stepTween(now);
-        if (!drive) {
+        if (!drive && mode === 'aerial') {
           clampTarget();
           controls.update();
         }
