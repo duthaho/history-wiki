@@ -703,15 +703,126 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       resize();
 
       // ── lights: lantern town under a cool moon ──
-      scene.add(new THREE.HemisphereLight(0x6b5232, 0x14100a, 1.05));
+      scene.add(new THREE.HemisphereLight(0x8a6a44, 0x1a140c, 1.45));
       const moon = new THREE.DirectionalLight(COL_MOON, 0.55);
       moon.position.set(-120, 220, -80);
       scene.add(moon);
 
+      // ── procedural canvas textures (Peregrino-style: no external assets) ──
+      function canvasTex(size, draw, repeatX, repeatY) {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = size;
+        draw(cv.getContext('2d'), size);
+        const t = new THREE.CanvasTexture(cv);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        if (repeatX) t.repeat.set(repeatX, repeatY || repeatX);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      // tile rows on a neutral warm base — the per-instance TYPE color supplies the hue
+      const roofTex = canvasTex(128, (ctx, s) => {
+        ctx.fillStyle = '#b0a294';
+        ctx.fillRect(0, 0, s, s);
+        for (let y = 0; y < s; y += 10) {
+          ctx.fillStyle = 'rgba(60,24,12,0.5)';
+          ctx.fillRect(0, y, s, 2.5);
+          const off = (y / 10) % 2 ? 8 : 0;
+          for (let x = -8; x < s; x += 16) {
+            ctx.fillStyle = 'rgba(50,20,10,0.28)';
+            ctx.fillRect(x + off, y + 2, 1.6, 8);
+          }
+        }
+        for (let i = 0; i < 220; i++) {
+          ctx.fillStyle = 'rgba(255,190,130,' + (Math.random() * 0.06) + ')';
+          ctx.fillRect(Math.random() * s, Math.random() * s, 3, 3);
+        }
+        // baked shading: eaves darker, ridge catches the light (v=0 is canvas bottom)
+        const shade = ctx.createLinearGradient(0, s, 0, 0);
+        shade.addColorStop(0, 'rgba(0,0,0,0.42)');
+        shade.addColorStop(1, 'rgba(255,225,180,0.12)');
+        ctx.fillStyle = shade;
+        ctx.fillRect(0, 0, s, s);
+      }, 2, 2);
+      // aged plaster wall — noise streaks over cream, tinted per type
+      const wallTex = canvasTex(128, (ctx, s) => {
+        ctx.fillStyle = '#cfc0a4';
+        ctx.fillRect(0, 0, s, s);
+        for (let i = 0; i < 500; i++) {
+          const g = 150 + Math.random() * 90;
+          ctx.fillStyle = 'rgba(' + g + ',' + (g * 0.9 | 0) + ',' + (g * 0.72 | 0) + ',0.16)';
+          ctx.fillRect(Math.random() * s, Math.random() * s, 2 + Math.random() * 5, 6 + Math.random() * 16);
+        }
+        ctx.fillStyle = 'rgba(70,50,30,0.25)';
+        ctx.fillRect(0, s - 7, s, 7); // damp base line
+      });
+      // packed-earth ground
+      const groundTex = canvasTex(128, (ctx, s) => {
+        ctx.fillStyle = '#151109';
+        ctx.fillRect(0, 0, s, s);
+        for (let i = 0; i < 420; i++) {
+          const v = Math.random();
+          ctx.fillStyle = 'rgba(' + (30 + v * 30 | 0) + ',' + (24 + v * 20 | 0) + ',' + (14 + v * 12 | 0) + ',0.5)';
+          ctx.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 3, 1 + Math.random() * 3);
+        }
+      }, 220, 220);
+
+      // hipped roof: unit base 1×1, ridge along x at y=1 (non-indexed → flat shading)
+      function makeHipRoofGeo() {
+        const A = [-0.5, 0, -0.5], B = [0.5, 0, -0.5], C = [0.5, 0, 0.5], D = [-0.5, 0, 0.5];
+        const R1 = [-0.26, 1, 0], R2 = [0.26, 1, 0];
+        const tris = [
+          D, C, R2, D, R2, R1, // front slope
+          B, A, R1, B, R1, R2, // back slope
+          A, D, R1,            // west hip
+          C, B, R2             // east hip
+        ];
+        const pos = [];
+        tris.forEach(v => pos.push(v[0], v[1], v[2]));
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const uv = [];
+        for (let i = 0; i < pos.length; i += 3) uv.push(pos[i] + 0.5, pos[i + 1]);
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+        geo.computeVertexNormals();
+        return geo;
+      }
+      const hipRoofGeo = makeHipRoofGeo();
+
+      // ── sky: gradient dome + stars + moon (fog-exempt) ──
+      const skyMat = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        uniforms: {
+          top: { value: new THREE.Color(0x090812) },
+          horizon: { value: new THREE.Color(0x2b130a) }
+        },
+        vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+        fragmentShader: 'varying vec3 vP; uniform vec3 top; uniform vec3 horizon;'
+          + ' void main(){ float h = clamp(normalize(vP).y, 0.0, 1.0);'
+          + ' gl_FragColor = vec4(mix(horizon, top, pow(h, 0.55)), 1.0); }'
+      });
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(2600, 20, 12), skyMat);
+      scene.add(sky);
+
+      const starPos = [];
+      for (let i = 0; i < 550; i++) {
+        const a = hash01('star:' + i) * Math.PI * 2;
+        const r = 900 + hash01('starr:' + i) * 1300;
+        const y = 220 + hash01('stary:' + i) * 1100;
+        starPos.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      }
+      const starGeo = new THREE.BufferGeometry();
+      starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+      scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+        color: 0xbfc8dd, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.7,
+        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      })));
+
       // ── ground ──
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(6000, 6000),
-        new THREE.MeshLambertMaterial({ color: COL_GROUND })
+        new THREE.MeshLambertMaterial({ color: 0xa89478, map: groundTex })
       );
       ground.rotation.x = -Math.PI / 2;
       scene.add(ground);
@@ -747,15 +858,30 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       scene.add(new THREE.LineSegments(edgeGeo,
         new THREE.LineBasicMaterial({ color: 0x9a7e42, transparent: true, opacity: 0.5 })));
 
-      // ── buildings: instanced boxes + roof trims + windows ──
+      // ── buildings: textured walls + eaves trim + hipped tile roofs + columns ──
       const N = buildings.length;
       const dummy = new THREE.Object3D();
+      const mLocal = new THREE.Matrix4();
       const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+      const TIERED = new Set(['dynasty', 'concept', 'era']); // đình / chùa / tháp silhouettes
 
-      const wallMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), N);
-      const roofMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshBasicMaterial(), N);
+      const wallMesh = new THREE.InstancedMesh(boxGeo,
+        new THREE.MeshLambertMaterial({ map: wallTex }), N);
+      const roofMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshBasicMaterial(), N); // eaves trim — carries the type color
       const wallBase = [];
       const roofBase = [];
+
+      // hipped roofs: one instance per building + one extra tier for TIERED types
+      const tierOwners = [];
+      buildings.forEach(b => {
+        const node = nodeById.get(b.id);
+        if (node && TIERED.has(node.type)) tierOwners.push(idxById.get(b.id));
+      });
+      // unlit + baked shading: keeps the color-coded roofscape readable at night
+      const hipMesh = new THREE.InstancedMesh(hipRoofGeo,
+        new THREE.MeshBasicMaterial({ map: roofTex }), N + tierOwners.length);
+      const hipBase = [];
+      const roofHof = [];
 
       buildings.forEach((b, i) => {
         dummy.position.set(b.position.x, b.height / 2, b.position.z);
@@ -764,29 +890,77 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         dummy.updateMatrix();
         wallMesh.setMatrixAt(i, dummy.matrix);
 
-        dummy.position.y = b.height + 0.22;
-        dummy.scale.set(b.width * 1.12, 0.45, b.depth * 1.12);
+        // eaves board just under the roof
+        dummy.position.y = b.height + 0.1;
+        dummy.scale.set(b.width * 1.28, 0.22, b.depth * 1.28);
         dummy.updateMatrix();
         roofMesh.setMatrixAt(i, dummy.matrix);
 
+        // hipped tile roof
+        const roofH = 1.7 + b.height * 0.14;
+        roofHof.push(roofH);
+        dummy.position.y = b.height + 0.18;
+        dummy.scale.set(b.width * 1.34, roofH, b.depth * 1.34);
+        dummy.updateMatrix();
+        hipMesh.setMatrixAt(i, dummy.matrix);
+
         const node = nodeById.get(b.id);
         const type = node ? node.type : 'unknown';
-        const wall = new THREE.Color(TYPE_COLORS[type] || '#888888').multiplyScalar(0.42);
-        const roof = new THREE.Color(TYPE_COLORS[type] || '#888888').multiplyScalar(0.85);
+        const typeCol = new THREE.Color(TYPE_COLORS[type] || '#888888');
+        const wall = typeCol.clone().multiplyScalar(0.62);
+        const roof = typeCol.clone().multiplyScalar(0.95);
+        // neutral tile texture × type color = color-coded roofscape from above
+        const hip = typeCol.clone().lerp(new THREE.Color('#c08a5a'), 0.12);
         wallBase.push(wall);
         roofBase.push(roof);
+        hipBase.push(hip);
         wallMesh.setColorAt(i, wall);
         roofMesh.setColorAt(i, roof);
+        hipMesh.setColorAt(i, hip);
+      });
+      // upper tiers (đình/chùa): smaller roof floating above the main one
+      tierOwners.forEach((bi, k) => {
+        const b = buildings[bi];
+        const roofH = roofHof[bi];
+        dummy.position.set(b.position.x, b.height + 0.18 + roofH + 0.55, b.position.z);
+        dummy.rotation.set(0, b.rotationY, 0);
+        dummy.scale.set(b.width * 0.78, roofH * 0.66, b.depth * 0.78);
+        dummy.updateMatrix();
+        hipMesh.setMatrixAt(N + k, dummy.matrix);
+        hipMesh.setColorAt(N + k, hipBase[bi]);
       });
       scene.add(wallMesh);
       scene.add(roofMesh);
+      scene.add(hipMesh);
+
+      // porch columns for dynasty halls (đình)
+      const colOwners = buildings.filter(b => {
+        const n = nodeById.get(b.id);
+        return n && n.type === 'dynasty';
+      });
+      const colGeo = new THREE.CylinderGeometry(0.15, 0.18, 1, 6);
+      const colMesh = new THREE.InstancedMesh(colGeo,
+        new THREE.MeshLambertMaterial({ color: 0x4a3524 }), colOwners.length * 4);
+      colOwners.forEach((b, k) => {
+        dummy.position.set(b.position.x, 0, b.position.z);
+        dummy.rotation.set(0, b.rotationY, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        const colH = Math.min(3.2, b.height * 0.7);
+        [-0.36, -0.13, 0.13, 0.36].forEach((fx, j) => {
+          mLocal.makeTranslation(fx * b.width, colH / 2, b.depth / 2 + 0.75);
+          const m = dummy.matrix.clone().multiply(mLocal)
+            .multiply(new THREE.Matrix4().makeScale(1, colH, 1));
+          colMesh.setMatrixAt(k * 4 + j, m);
+        });
+      });
+      scene.add(colMesh);
 
       // windows — one instanced quad mesh, lit deterministically
       const winGeo = new THREE.PlaneGeometry(0.8, 1.05);
       const winOwner = [];   // window index -> building index
       const winLit = [];     // window index -> lit at rest?
       const winMatrices = [];
-      const mLocal = new THREE.Matrix4();
       buildings.forEach((b, bi) => {
         const floors = Math.max(1, Math.floor((b.height - 1.4) / 2.2));
         const cols = b.width >= 6.4 ? 3 : 2;
@@ -881,24 +1055,104 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       });
       scene.add(new THREE.Points(lanternGeo, lanternMat));
 
-      // ── car ──
+      // ── moon (cool counterpoint to the lantern warmth) ──
+      const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: lanternTex, color: 0x9fb3d8, transparent: true, opacity: 0.9,
+        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      }));
+      moonSprite.scale.setScalar(150);
+      moonSprite.position.set(-620, 520, (CITY.bounds.minZ + CITY.bounds.maxZ) / 2 - 300);
+      scene.add(moonSprite);
+
+      // ── trees: instanced trunks + canopies in the district gaps and behind back lanes ──
+      const treeSpots = [];
+      CITY.districts.forEach((d, i) => {
+        // grove in the dark gap after each district
+        for (let k = 0; k < 7; k++) {
+          const h = hash01(d.era + ':tree:' + k);
+          const x = (h - 0.5) * (d.bounds.maxX - d.bounds.minX + 30);
+          if (Math.abs(x) < 7) continue; // keep the avenue clear
+          treeSpots.push([x, d.zEnd + 2 + hash01(d.era + ':tz:' + k) * 5]);
+        }
+        // a few behind the district's outer edge
+        for (let k = 0; k < 5; k++) {
+          const side = k % 2 ? 1 : -1;
+          const zi = d.zStart + 6 + hash01(d.era + ':bz:' + k) * (d.zEnd - d.zStart - 10);
+          treeSpots.push([side * (Math.max(Math.abs(d.bounds.minX), d.bounds.maxX) + 6 + hash01(d.era + ':bx:' + k) * 10), zi]);
+        }
+      });
+      const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 1, 5);
+      const canopyGeo = new THREE.IcosahedronGeometry(1, 0);
+      const trunkMesh = new THREE.InstancedMesh(trunkGeo,
+        new THREE.MeshLambertMaterial({ color: 0x33241a }), treeSpots.length);
+      const canopyMesh = new THREE.InstancedMesh(canopyGeo,
+        new THREE.MeshLambertMaterial({ color: 0x24402a }), treeSpots.length);
+      const canopyTint = new THREE.Color();
+      treeSpots.forEach(([x, z], i) => {
+        const th = 2.2 + hash01('th:' + i) * 2.6;
+        dummy.position.set(x, th / 2, z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, th, 1);
+        dummy.updateMatrix();
+        trunkMesh.setMatrixAt(i, dummy.matrix);
+        const cr = 1.4 + hash01('cr:' + i) * 1.5;
+        dummy.position.set(x, th + cr * 0.55, z);
+        dummy.scale.set(cr, cr * 1.15, cr);
+        dummy.updateMatrix();
+        canopyMesh.setMatrixAt(i, dummy.matrix);
+        canopyTint.setHSL(0.32 + hash01('ch:' + i) * 0.06, 0.32, 0.16 + hash01('cl:' + i) * 0.08);
+        canopyMesh.setColorAt(i, canopyTint);
+      });
+      scene.add(trunkMesh);
+      scene.add(canopyMesh);
+
+      // ── car: procedural low-poly with cabin, spinning wheels, lights ──
       const car = new THREE.Group();
-      const carBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.65, 2.9),
-        new THREE.MeshLambertMaterial({ color: 0xc4452a }));
-      carBody.position.y = 0.55;
-      const carRoof = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.5, 1.5),
-        new THREE.MeshLambertMaterial({ color: 0x2a1c12 }));
-      carRoof.position.set(0, 1.05, -0.15);
-      car.add(carBody, carRoof);
+      const carPaint = new THREE.MeshLambertMaterial({ color: 0xc4452a });
+      const carDark = new THREE.MeshLambertMaterial({ color: 0x1c130c });
+      const carGlass = new THREE.MeshLambertMaterial({ color: 0x27333d });
+      // chassis + hood step
+      const carBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.55, 3.1), carPaint);
+      carBody.position.y = 0.62;
+      const carHood = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 0.9), carPaint);
+      carHood.position.set(0, 0.98, 1.0);
+      // cabin with glass sides
+      const carCabin = new THREE.Mesh(new THREE.BoxGeometry(1.34, 0.62, 1.6), carGlass);
+      carCabin.position.set(0, 1.2, -0.25);
+      const carTop = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.1, 1.7), carPaint);
+      carTop.position.set(0, 1.54, -0.25);
+      // bumpers
+      const carBumper = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.18, 3.25), carDark);
+      carBumper.position.y = 0.38;
+      car.add(carBody, carHood, carCabin, carTop, carBumper);
+      // wheels — rotated cylinders that spin with travel
+      const wheelGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 10);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheels = [];
+      [[-0.78, 1.05], [0.78, 1.05], [-0.78, -1.05], [0.78, -1.05]].forEach(([x, z]) => {
+        const w = new THREE.Mesh(wheelGeo, carDark);
+        w.position.set(x, 0.34, z);
+        car.add(w);
+        wheels.push(w);
+      });
+      // headlights (warm) + taillights (red)
       const headMat = new THREE.SpriteMaterial({
         map: lanternTex, color: 0xffe9b8, transparent: true,
         blending: THREE.AdditiveBlending, depthWrite: false
       });
-      [-0.45, 0.45].forEach(x => {
-        const s = new THREE.Sprite(headMat);
-        s.scale.setScalar(1.5);
-        s.position.set(x, 0.55, 1.5);
-        car.add(s);
+      const tailMat = new THREE.SpriteMaterial({
+        map: lanternTex, color: 0xff3a22, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      [-0.5, 0.5].forEach(x => {
+        const h = new THREE.Sprite(headMat);
+        h.scale.setScalar(1.4);
+        h.position.set(x, 0.7, 1.62);
+        car.add(h);
+        const t = new THREE.Sprite(tailMat);
+        t.scale.setScalar(0.8);
+        t.position.set(x, 0.68, -1.62);
+        car.add(t);
       });
       const gate0 = CITY.districts[0] ? CITY.districts[0].gate : { x: 0, z: 0 };
       car.position.set(2.5, 0, gate0.z + 4);
@@ -919,8 +1173,8 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         neighbors.forEach(nid => {
           const to = buildingById.get(nid);
           if (!to) return;
-          const a = new THREE.Vector3(from.position.x, from.height + 0.8, from.position.z);
-          const c = new THREE.Vector3(to.position.x, to.height + 0.8, to.position.z);
+          const a = new THREE.Vector3(from.position.x, from.height + (1.7 + from.height * 0.14) + 0.6, from.position.z);
+          const c = new THREE.Vector3(to.position.x, to.height + (1.7 + to.height * 0.14) + 0.6, to.position.z);
           const dist = a.distanceTo(c);
           const mid = a.clone().add(c).multiplyScalar(0.5);
           mid.y += Math.max(10, dist * 0.22);
@@ -957,9 +1211,21 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           wallMesh.setColorAt(i, tmpColor.copy(wallBase[i]).multiplyScalar(mul));
           roofMesh.setColorAt(i, tmpColor.copy(roofBase[i]).multiplyScalar(
             b.id === selectedId ? 1.5 : mul));
+          hipMesh.setColorAt(i, tmpColor.copy(hipBase[i]).multiplyScalar(
+            b.id === selectedId ? 1.35 : mul));
+        });
+        tierOwners.forEach((bi, k) => {
+          const b = buildings[bi];
+          const node = nodeById.get(b.id);
+          const typeOn = node ? activeTypes.has(node.type) : true;
+          const inHl = !highlightSet || highlightSet.has(b.id);
+          const mul = !typeOn ? 0.18 : (!inHl ? 0.3 : 1);
+          hipMesh.setColorAt(N + k, tmpColor.copy(hipBase[bi]).multiplyScalar(
+            b.id === selectedId ? 1.35 : mul));
         });
         wallMesh.instanceColor.needsUpdate = true;
         roofMesh.instanceColor.needsUpdate = true;
+        hipMesh.instanceColor.needsUpdate = true;
         for (let w = 0; w < winOwner.length; w++) {
           const b = buildings[winOwner[w]];
           const node = nodeById.get(b.id);
@@ -993,7 +1259,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         s.fontFace = 'Be Vietnam Pro, sans-serif';
         s.fontWeight = '500';
         s.material.depthWrite = false;
-        s.position.set(b.position.x, b.height + 2.6, b.position.z);
+        s.position.set(b.position.x, b.height + (1.7 + b.height * 0.14) + 2.4, b.position.z);
         s.visible = false;
         s.__baseScale = s.scale.clone();
         scene.add(s);
@@ -1191,12 +1457,17 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         applySelection(node);
       }
 
+      const lastCarPos = new THREE.Vector3();
       function stepDrive(now) {
         if (!drive) return;
         const raw = Math.min(1, (now - drive.t0) / drive.dur);
         const e = easeInOutCubic(raw);
         const pos = drive.curve.getPointAt(e);
         const tan = drive.curve.getTangentAt(Math.min(0.999, e));
+        // spin the wheels with distance travelled
+        const travelled = lastCarPos.distanceTo(pos);
+        if (travelled < 20) wheels.forEach(w => { w.rotation.x += travelled / 0.34; });
+        lastCarPos.copy(pos);
         car.position.copy(pos);
         car.lookAt(pos.x + tan.x, pos.y, pos.z + tan.z);
         // chase camera

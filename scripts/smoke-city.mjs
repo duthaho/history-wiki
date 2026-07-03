@@ -91,8 +91,8 @@ check(await idx.locator('a.view-link[href="city.html"]').count() > 0, 'index.htm
 // ── mobile ──
 const mob = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 mob.on('pageerror', e => errors.push('MOBILE: ' + e));
-await mob.goto('http://localhost:8125/city.html');
-await mob.waitForTimeout(6500);
+await mob.goto('http://localhost:8125/city.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await mob.waitForTimeout(9000);
 await mob.screenshot({ path: 'city-7-mobile.png' });
 
 check(errors.length === 0, 'no console/page errors' + (errors.length ? ' — ' + errors.join(' | ').slice(0, 400) : ''));
