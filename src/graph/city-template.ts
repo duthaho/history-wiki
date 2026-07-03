@@ -775,7 +775,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         <button class="skip-btn" id="skipBtn">Đến ngay ↦</button>
       </div>
       <div class="drive-hud" id="driveHud">
-        <div><b>W</b>/<b>↑</b> tiến &nbsp; <b>S</b>/<b>↓</b> lùi &nbsp; <b>A D</b>/<b>←→</b> rẽ &nbsp; <b>Shift</b> tăng tốc</div>
+        <div><b>W</b>/<b>↑</b> tiến &nbsp; <b>S</b>/<b>↓</b> lùi &nbsp; <b>A D</b>/<b>←→</b> rẽ &nbsp; <b>Shift</b> tăng tốc &nbsp; <b>Chuột</b> nhìn quanh</div>
         <div><b>E</b> xem nhà &nbsp; <b>M</b> toàn cảnh &nbsp; <b>H</b> nổi bật &nbsp; <b>Esc</b> tạm dừng</div>
       </div>
       <div class="hl-panel" id="hlPanel">
@@ -842,7 +842,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
     };
 
     // scene tokens — Phố cổ ban ngày (Peregrino daylight recipe)
-    const COL_ROAD = 0xb3a58c;                        // sun-warmed stone
+    const COL_ROAD = 0x3b3c37;                        // dark asphalt — clear luminance step below grass
     const COL_FOG = 0xcfdfe8;                         // pale morning haze
     const COL_WINDOW = new THREE.Color('#ffd773');    // warm glow for the selected house
     const COL_GLASS = new THREE.Color('#5a6d7c');     // daylight window glass w/ sky reflection
@@ -1102,7 +1102,7 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         const dx = b.x - a.x, dz = b.z - a.z;
         const len = Math.hypot(dx, dz) || 1;
         const nx = (-dz / len) * width / 2, nz = (dx / len) * width / 2;
-        const y = 0.02;
+        const y = 0.15; // clear of the ground plane — no z-fighting at distance
         // two triangles
         roadPos.push(
           a.x - nx, y, a.z - nz,  b.x - nx, y, b.z - nz,  b.x + nx, y, b.z + nz,
@@ -1116,14 +1116,70 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       const roadGeo = new THREE.BufferGeometry();
       roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(roadPos, 3));
       roadGeo.computeVertexNormals();
-      const roadMesh = new THREE.Mesh(roadGeo, new THREE.MeshLambertMaterial({ color: COL_ROAD }));
+      const roadMesh = new THREE.Mesh(roadGeo,
+        new THREE.MeshLambertMaterial({ color: COL_ROAD, side: THREE.DoubleSide }));
       roadMesh.receiveShadow = enableShadows;
       scene.add(roadMesh);
+
+      // driveways: a visible path from the lane to every single house
+      const drivePos = [];
+      const driveQuad = (a, b, width) => {
+        const dx = b.x - a.x, dz = b.z - a.z;
+        const len = Math.hypot(dx, dz) || 1;
+        const nx = (-dz / len) * width / 2, nz = (dx / len) * width / 2;
+        const y = 0.22;
+        drivePos.push(
+          a.x - nx, y, a.z - nz, b.x - nx, y, b.z - nz, b.x + nx, y, b.z + nz,
+          a.x - nx, y, a.z - nz, b.x + nx, y, b.z + nz, a.x + nx, y, a.z + nz
+        );
+      };
+      buildings.forEach(b => {
+        const p = CITY.roads.nodes[b.portal].p;
+        driveQuad(p, { x: b.position.x, z: b.position.z }, 2.0);
+      });
+      const driveGeo = new THREE.BufferGeometry();
+      driveGeo.setAttribute('position', new THREE.Float32BufferAttribute(drivePos, 3));
+      driveGeo.computeVertexNormals();
+      const driveMesh = new THREE.Mesh(driveGeo,
+        new THREE.MeshLambertMaterial({ color: 0xd8cfba, side: THREE.DoubleSide })); // pale gravel footway
+      driveMesh.receiveShadow = enableShadows;
+      scene.add(driveMesh);
+
+      // street names painted flat on the avenue — the Peregrino signature
+      function roadLabel(text, z) {
+        const cv = document.createElement('canvas');
+        let ctx = cv.getContext('2d');
+        ctx.font = '600 44px Be Vietnam Pro, Arial';
+        const wPx = Math.ceil(ctx.measureText(text).width) + 40;
+        cv.width = wPx;
+        cv.height = 72;
+        ctx = cv.getContext('2d');
+        ctx.font = '600 44px Be Vietnam Pro, Arial';
+        ctx.strokeStyle = 'rgba(40,42,38,0.92)';
+        ctx.lineWidth = 8;
+        ctx.strokeText(text, 20, 50);
+        ctx.fillStyle = '#f4f6f2';
+        ctx.fillText(text, 20, 50);
+        const tex = new THREE.CanvasTexture(cv);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const hM = 3.4;
+        const geo = new THREE.PlaneGeometry((wPx / 72) * hM, hM);
+        geo.rotateX(-Math.PI / 2);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+          map: tex, transparent: true, depthWrite: false,
+          polygonOffset: true, polygonOffsetFactor: -4
+        }));
+        mesh.rotation.y = -Math.PI / 2; // text runs along the avenue
+        mesh.position.set(0, 0.3, z);
+        mesh.renderOrder = 2;
+        scene.add(mesh);
+      }
+      CITY.districts.forEach(d => roadLabel(d.label, (d.zStart + d.zEnd) / 2));
 
       // gold avenue edge lines
       const edgeLinePos = [];
       const zMin = CITY.bounds.minZ - 6, zMax = CITY.bounds.maxZ + 6;
-      [-4.7, 4.7].forEach(x => { edgeLinePos.push(x, 0.06, zMin, x, 0.06, zMax); });
+      [-4.7, 4.7].forEach(x => { edgeLinePos.push(x, 0.28, zMin, x, 0.28, zMax); });
       const edgeGeo = new THREE.BufferGeometry();
       edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgeLinePos, 3));
       scene.add(new THREE.LineSegments(edgeGeo,
@@ -1801,6 +1857,24 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
         return false;
       }
 
+      // drag to look around the car; eases back behind you as you drive on
+      let lookYaw = 0, lookPitch = 0, looking = false, lookPX = 0, lookPY = 0;
+      renderer.domElement.addEventListener('pointerdown', e => {
+        if (mode === 'drive' && !drive && e.target === renderer.domElement) {
+          looking = true;
+          lookPX = e.clientX;
+          lookPY = e.clientY;
+        }
+      });
+      renderer.domElement.addEventListener('pointermove', e => {
+        if (!looking) return;
+        lookYaw -= (e.clientX - lookPX) * 0.006;
+        lookPitch = Math.max(-0.3, Math.min(0.75, lookPitch + (e.clientY - lookPY) * 0.004));
+        lookPX = e.clientX;
+        lookPY = e.clientY;
+      });
+      window.addEventListener('pointerup', () => { looking = false; });
+
       const camLook = new THREE.Vector3();
       function stepManualDrive(dt) {
         if (mode !== 'drive' || drive) return;
@@ -1826,11 +1900,18 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
           hideHint();
         }
         car.rotation.set(0, carState.heading, 0);
+        // look-around eases back behind the car once you drive on
+        if (!looking && Math.abs(carState.speed) > 3) {
+          const decay = Math.exp(-1.6 * dt);
+          lookYaw *= decay;
+          lookPitch *= decay;
+        }
         // chase camera — swoops in smoothly even when arriving from aerial mode
-        const dirX = Math.sin(carState.heading), dirZ = Math.cos(carState.heading);
+        const effH = carState.heading + lookYaw;
+        const dirX = Math.sin(effH), dirZ = Math.cos(effH);
         const k = 1 - Math.exp(-5 * dt);
         camera.position.lerp(camLook.set(
-          car.position.x - dirX * 11.5, 5.4, car.position.z - dirZ * 11.5), k);
+          car.position.x - dirX * 11.5, 5.4 + lookPitch * 12, car.position.z - dirZ * 11.5), k);
         controls.target.lerp(camLook.set(
           car.position.x + dirX * 7, 1.6, car.position.z + dirZ * 7), k);
         camera.lookAt(controls.target);
@@ -1942,9 +2023,9 @@ export function generateCityHtml(data: GraphData, layout: CityLayout): string {
       const ROWS = isMobile
         ? [['Cần trái', 'Lái xe'], ['Chạm nhà', 'Tự lái tới nơi'], ['Nút Xem', 'Mở bài viết'],
            ['Toàn cảnh', 'Chế độ bản đồ'], ['Dải màu dưới', 'Nhảy tới thời kỳ']]
-        : [['W A S D / ↑ ↓', 'Lái xe'], ['← →', 'Rẽ'], ['Shift', 'Tăng tốc'],
-           ['E / Click', 'Xem di tích'], ['M', 'Toàn cảnh'], ['H', 'Điểm nổi bật'],
-           ['1–' + highlights.length, 'Đến điểm nổi bật'], ['Esc', 'Tạm dừng']];
+        : [['W A S D / ↑ ↓', 'Lái xe'], ['← →', 'Rẽ'], ['Kéo chuột', 'Nhìn quanh'],
+           ['Shift', 'Tăng tốc'], ['E / Click', 'Xem di tích'], ['M', 'Toàn cảnh'],
+           ['H', 'Điểm nổi bật'], ['1–' + highlights.length, 'Đến điểm nổi bật'], ['Esc', 'Tạm dừng']];
       ROWS.forEach(([k, label]) => {
         const row = document.createElement('div');
         row.className = 'pause-row';
